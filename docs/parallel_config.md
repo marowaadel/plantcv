@@ -1,11 +1,38 @@
 ## Parallel workflow configuration class
 
-`Config` is a class that stores parallel workflow configuration parameters. An instance of `Config` is input to the
-`plantcv.parallel.run_workflow` function to execute a PlantCV workflow on an image dataset, in parallel.
+`WorkflowConfig` is a class that stores parallel workflow configuration parameters. An instance of `WorkflowConfig` 
+is input to the `plantcv.parallel.run_workflow` function to execute a PlantCV workflow on an image dataset, in parallel.
 
-*class* **plantcv.parallel.Config**(*input_dir, json, filename_metadata, output_dir=".", tmp_dir=None, processes=1, 
-start_date=1, end_date=None, imgformat="png", delimiter="_", metadata_filters=None, 
-timestampformat='%Y-%m-%d %H:%M:%S.%f', writeimg=False, other_args=None, coprocess=None*)
+*class* **plantcv.parallel.WorkflowConfig**
+
+**Class methods**
+
+Create a template configuration file that can be modified and imported by a workflow.
+
+**WorkflowConfig.create_template**(*config_file*)
+
+- **Parameters:**
+    - config_file (str, required): path/name of output configuration file template
+- **Context:**
+    - Used to create a template configuration file that can be edited and imported
+
+Import a configuration file. 
+
+**WorkflowConfig.import_config_file**(*config_file*)
+
+- **Parameters:**
+    - config_file (str, required): path/name of input configuration file
+- **Context:**
+    - Used to import configuration settings from a file
+
+Validate parameters/structure of configuration data.
+
+**WorkflowConfig.validate_config**()
+
+- **Parameters:**
+    - None
+- **Context:**
+    - Used to run validation checks on configuration settings
 
 - **Parameters:**
     - input_dir (str, required): path/name of input images directory (validates that it exists)
@@ -31,9 +58,16 @@ timestampformat='%Y-%m-%d %H:%M:%S.%f', writeimg=False, other_args=None, coproce
 ```python
 import plantcv.parallel
 
-config = plantcv.parallel.Config(input_dir="/path/to/images", json="plantcv.results.json", 
-                                 filename_metadata=["imgtype", "camera", "frame", "zoom"], output_dir="/path/to/outdir",
-                                 processes=10, metadata_filters={"imgtype": "VIS", "zoom": "z1000"})
-plantcv.parallel.run_workflow(config=config, workflow=workflow)
+# Create a WorkflowConfig instance
+wf = plantcv.parallel.WorkflowConfig()
+# Create a template configuration file
+wf.create_template(config_file="my_config.json")
+# Edit configuration file as needed
+# Import the configuration file
+wf.import_config_file(config_file="my_config.json")
+# Check for errors
+errors = wf.validate_config()
+# Run a workflow in parallel
+plantcv.parallel.run_workflow(config=wf.config, workflow=workflow)
 
 ```
