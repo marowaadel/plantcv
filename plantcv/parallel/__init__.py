@@ -2,7 +2,6 @@ import os
 import sys
 import json
 from copy import deepcopy
-import tempfile
 
 __all__ = ["metadata_parser", "job_builder", "process_results", "multiprocess", "check_date_range", "WorkflowConfig",
            "run_workflow"]
