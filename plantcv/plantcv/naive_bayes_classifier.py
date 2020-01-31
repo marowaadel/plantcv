@@ -50,9 +50,7 @@ def naive_bayes_classifier(rgb_img, pdf_file):
         pdfs[class_name][channel] = [float(i) for i in cols[2:]]
 
     # Split the input BGR image into component channels for BGR, HSV, and LAB colorspaces
-    # b, g, r = cv2.split(img)
     h, s, v = cv2.split(cv2.cvtColor(rgb_img, cv2.COLOR_BGR2HSV))
-    # l, gm, by = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2LAB))
 
     # Calculate the dimensions of the input image
     width, height, depth = np.shape(rgb_img)
@@ -82,13 +80,12 @@ def naive_bayes_classifier(rgb_img, pdf_file):
                 background_classes.append(px_p[name])
         background_class = np.maximum.reduce(background_classes)
         masks[class_name][np.where(px_p[class_name] > background_class)] = 255
-    # mask[np.where(plant > bg)] = 255
 
     # Print or plot the mask if debug is not None
     if params.debug == "print":
         for class_name, mask in masks.items():
             print_image(mask, os.path.join(params.debug_outdir,
-                                           str(params.device) + "_naive_bayes_" + class_name + "_mask.jpg"))
+                                           str(params.device) + "_naive_bayes_" + class_name + "_mask.png"))
     elif params.debug == "plot":
         for class_name, mask in masks.items():
             plot_image(mask, cmap="gray")

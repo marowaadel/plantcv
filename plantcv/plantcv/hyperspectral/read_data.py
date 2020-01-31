@@ -80,9 +80,14 @@ def _make_pseudo_rgb(spectral_array):
     # Gamma correct pseudo_rgb image
     pseudo_rgb = pseudo_rgb ** (1 / 2.2)
     # Scale each of the channels up to 255
+    debug = params.debug
+    params.debug = None
     pseudo_rgb = cv2.merge((rescale(pseudo_rgb[:, :, 0]),
                             rescale(pseudo_rgb[:, :, 1]),
                             rescale(pseudo_rgb[:, :, 2])))
+
+    # Reset debugging mode
+    params.debug = debug
 
     return pseudo_rgb
 
@@ -98,9 +103,6 @@ def read_data(filename):
     :param filename: str
     :return spectral_array: __main__.Spectral_data
         """
-    # Store debug mode
-    debug = params.debug
-    params.debug = None
 
     # Initialize dictionary
     header_dict = {}
@@ -172,11 +174,7 @@ def read_data(filename):
     pseudo_rgb = _make_pseudo_rgb(spectral_array)
     spectral_array.pseudo_rgb = pseudo_rgb
 
-    # Reset debug mode
-    params.debug = debug
-
     if params.debug == "plot":
-        # Gamma correct pseudo_rgb image
         plot_image(pseudo_rgb)
     elif params.debug == "print":
         print_image(pseudo_rgb, os.path.join(params.debug_outdir, str(params.device)+"_pseudo_rgb.png"))

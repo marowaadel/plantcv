@@ -33,8 +33,6 @@ def binary(gray_img, threshold, max_value, object_type="light"):
     :param object_type: str
     :return bin_img: numpy.ndarray
     """
-    params.device += 1
-
     # Set the threshold method
     threshold_method = ""
     if object_type.upper() == "LIGHT":
@@ -43,6 +41,8 @@ def binary(gray_img, threshold, max_value, object_type="light"):
         threshold_method = cv2.THRESH_BINARY_INV
     else:
         fatal_error('Object type ' + str(object_type) + ' is not "light" or "dark"!')
+
+    params.device += 1
 
     # Threshold the image
     bin_img = _call_threshold(gray_img, threshold, max_value, threshold_method, "_binary_threshold_")
@@ -69,8 +69,6 @@ def gaussian(gray_img, max_value, object_type="light"):
     :param object_type: str
     :return bin_img: numpy.ndarray
     """
-    params.device += 1
-
     # Set the threshold method
     threshold_method = ""
     if object_type.upper() == "LIGHT":
@@ -79,6 +77,8 @@ def gaussian(gray_img, max_value, object_type="light"):
         threshold_method = cv2.THRESH_BINARY_INV
     else:
         fatal_error('Object type ' + str(object_type) + ' is not "light" or "dark"!')
+
+    params.device += 1
 
     bin_img = _call_adaptive_threshold(gray_img, max_value, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, threshold_method,
                                        "_gaussian_threshold_")
@@ -105,8 +105,6 @@ def mean(gray_img, max_value, object_type="light"):
     :param object_type: str
     :return bin_img: numpy.ndarray
     """
-    params.device += 1
-
     # Set the threshold method
     threshold_method = ""
     if object_type.upper() == "LIGHT":
@@ -115,6 +113,8 @@ def mean(gray_img, max_value, object_type="light"):
         threshold_method = cv2.THRESH_BINARY_INV
     else:
         fatal_error('Object type ' + str(object_type) + ' is not "light" or "dark"!')
+
+    params.device += 1
 
     bin_img = _call_adaptive_threshold(gray_img, max_value, cv2.ADAPTIVE_THRESH_MEAN_C, threshold_method,
                                        "_mean_threshold_")
@@ -141,8 +141,6 @@ def otsu(gray_img, max_value, object_type="light"):
     :param object_type: str
     :return bin_img: numpy.ndarray
     """
-    params.device += 1
-
     # Set the threshold method
     threshold_method = ""
     if object_type.upper() == "LIGHT":
@@ -151,6 +149,8 @@ def otsu(gray_img, max_value, object_type="light"):
         threshold_method = cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     else:
         fatal_error('Object type ' + str(object_type) + ' is not "light" or "dark"!')
+
+    params.device += 1
 
     # Threshold the image
     bin_img = _call_threshold(gray_img, 0, max_value, threshold_method, "_otsu_threshold_")
@@ -180,8 +180,6 @@ def triangle(gray_img, max_value, object_type="light", xstep=1):
     :param xstep: int
     :return bin_img: numpy.ndarray
     """
-    params.device += 1
-
     # Calculate automatic threshold value based on triangle algorithm
     hist = cv2.calcHist([gray_img], [0], None, [256], [0, 255])
 
@@ -237,6 +235,8 @@ def triangle(gray_img, max_value, object_type="light", xstep=1):
         threshold_method = cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
     else:
         fatal_error('Object type ' + str(object_type) + ' is not "light" or "dark"!')
+
+    params.device += 1
 
     # Threshold the image
     bin_img = _call_threshold(gray_img, autothreshval, max_value, threshold_method, "_triangle_threshold_")
@@ -336,10 +336,6 @@ def custom_range(rgb_img, lower_thresh, upper_thresh, channel='gray'):
     :return mask: numpy.ndarray
     :return masked_img: numpy.ndarray
     """
-
-    # Auto-increment the device counter
-    params.device += 1
-
     if channel.upper() == 'HSV':
 
         # Check threshold inputs
@@ -447,6 +443,9 @@ def custom_range(rgb_img, lower_thresh, upper_thresh, channel='gray'):
 
     else:
         fatal_error(str(channel) + " is not a valid colorspace. Channel must be either 'RGB', 'HSV', or 'gray'.")
+
+    # Auto-increment the device counter
+    params.device += 1
 
     # Print or plot the binary image if debug is on
     if params.debug == 'print':
@@ -673,3 +672,50 @@ def _plot(x, mph, mpd, threshold, edge, valley, ax, ind):
                  % (mode, str(mph), mpd, str(threshold), edge))
     # plt.grid()
     plt.show()
+
+
+def saturation(rgb_img, threshold=255, channel = "any"):
+    """Return a mask filtering out saturated pixels.
+
+    Inputs:
+    rgb_img    = RGB image
+    threshold  = value for threshold, above which is considered saturated
+    channel    = how many channels must be saturated for the pixel to be masked out ("any", "all")
+
+    Returns:
+    masked_img = A binary image with the saturated regions blacked out.
+
+    :param img: np.ndarray
+    :param threshold: int
+    :param channel: str
+    :return masked_img: np.ndarray
+    """
+
+    params.device += 1
+
+    # Mask red, green, and blue saturation separately
+    b, g, r = cv2.split(rgb_img)
+    b_saturated = cv2.inRange(b, threshold, 255)
+    g_saturated = cv2.inRange(g, threshold, 255)
+    r_saturated = cv2.inRange(r, threshold, 255)
+
+    # Combine channel masks
+    if channel.lower() == "any":
+        # Consider a pixel saturated if any channel is saturated
+        saturated = cv2.bitwise_or(b_saturated, g_saturated)
+        saturated = cv2.bitwise_or(saturated, r_saturated)
+    elif channel.lower() == "all":
+        # Consider a pixel saturated only if all channels are saturated
+        saturated = cv2.bitwise_and(b_saturated, g_saturated)
+        saturated = cv2.bitwise_and(saturated, r_saturated)
+    else:
+        fatal_error(str(channel) + " is not a valid option. Channel must be either 'any', or 'all'.")
+
+    # Invert "saturated" before returning, so saturated = black
+    bin_img = cv2.bitwise_not(saturated)
+
+    if params.debug == 'print':
+        print_image(bin_img, os.path.join(params.debug_outdir, str(params.device), '_saturation_threshold.png'))
+    elif params.debug == 'plot':
+        plot_image(bin_img, cmap='gray')
+    return bin_img

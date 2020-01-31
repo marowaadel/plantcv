@@ -655,9 +655,11 @@ TEST_INPUT_BINARY = "input_binary_img.png"
 # This image may be used, edited and reproduced freely.
 TEST_INPUT_RGBA = "input_rgba.png"
 TEST_INPUT_BAYER = "bayer_img.png"
-TEST_INPUT_ROI = "input_roi.npz"
+TEST_INPUT_ROI_CONTOUR = "input_roi_contour.npz"
+TEST_INPUT_ROI_HIERARCHY = "input_roi_hierarchy.npz"
 TEST_INPUT_CONTOURS = "input_contours.npz"
-TEST_INPUT_CONTOURS1 = "input_contours1.npz"
+TEST_INPUT_OBJECT_CONTOURS = "input_object_contours.npz"
+TEST_INPUT_OBJECT_HIERARCHY = "input_object_hierarchy.npz"
 TEST_VIS = "VIS_SV_0_z300_h1_g0_e85_v500_93054.png"
 TEST_NIR = "NIR_SV_0_z300_h1_g0_e15000_v500_93059.png"
 TEST_VIS_TV = "VIS_TV_0_z300_h1_g0_e85_v500_93054.png"
@@ -1244,7 +1246,7 @@ def test_plantcv_auto_crop():
     # Read in test data
     img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
     contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
-    roi_contours = contours['arr_0']
+    roi_contours = [contours[arr_n] for arr_n in contours]
     # Test with debug = "print"
     pcv.params.debug = "print"
     _ = pcv.auto_crop(img=img1, obj=roi_contours[1], padding_x=20, padding_y=20, color='black')
@@ -1269,7 +1271,7 @@ def test_plantcv_auto_crop_grayscale_input():
     rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
     gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
     contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
-    roi_contours = contours['arr_0']
+    roi_contours = [contours[arr_n] for arr_n in contours]
     # Test with debug = "plot"
     pcv.params.debug = "plot"
     cropped = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x=20, padding_y=20, color='white')
@@ -1283,7 +1285,7 @@ def test_plantcv_auto_crop_bad_input():
     rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
     gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
     contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
-    roi_contours = contours['arr_0']
+    roi_contours = [contours[arr_n] for arr_n in contours]
     with pytest.raises(RuntimeError):
         pcv.params.debug = "plot"
         _ = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x=20, padding_y=20, color='wite')
@@ -1366,7 +1368,7 @@ def test_plantcv_cluster_contours():
     img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
     roi_objects = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
     hierarchy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
-    objs = roi_objects['arr_0']
+    objs = [roi_objects[arr_n] for arr_n in roi_objects]
     obj_hierarchy = hierarchy['arr_0']
     # Test with debug = "print"
     pcv.params.debug = "print"
@@ -1393,7 +1395,7 @@ def test_plantcv_cluster_contours_grayscale_input():
     img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), 0)
     roi_objects = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
     hierachy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
-    objs = roi_objects['arr_0']
+    objs = [roi_objects[arr_n] for arr_n in roi_objects]
     obj_hierarchy = hierachy['arr_0']
     # Test with debug = "print"
     pcv.params.debug = "print"
@@ -1422,8 +1424,8 @@ def test_plantcv_cluster_contours_splitimg():
     hierachy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
     cluster_names = os.path.join(TEST_DATA, TEST_INPUT_GENOTXT)
     cluster_names_too_many = os.path.join(TEST_DATA, TEST_INPUT_GENOTXT_TOO_MANY)
-    roi_contours = contours['arr_0']
-    cluster_contours = clusters['arr_0']
+    roi_contours = [contours[arr_n] for arr_n in contours]
+    cluster_contours = [clusters[arr_n] for arr_n in  clusters]
     obj_hierarchy = hierachy['arr_0']
     # Test with debug = "print"
     pcv.params.debug = "print"
@@ -1837,7 +1839,7 @@ def test_plantcv_fluor_fvfm():
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_fluor_fvfm")
     os.mkdir(cache_dir)
     pcv.params.debug_outdir = cache_dir
-    filename = os.path.join(cache_dir, 'plantcv_fvfm_hist.jpg')
+    filename = os.path.join(cache_dir, 'plantcv_fvfm_hist.png')
     # Read in test data
     fdark = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_FDARK), -1)
     fmin = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_FMIN), -1)
@@ -2221,9 +2223,10 @@ def test_plantcv_object_composition():
     pcv.params.debug_outdir = cache_dir
     # Read in test data
     img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS1), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    object_hierarchy = contours_npz['arr_1']
+    object_contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_CONTOURS), encoding="latin1")
+    object_contours = [object_contours_npz[arr_n] for arr_n in object_contours_npz]
+    object_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_HIERARCHY), encoding="latin1")
+    object_hierarchy = object_hierarchy_npz['arr_0']
     # Test with debug = "print"
     pcv.params.debug = "print"
     _ = pcv.object_composition(img=img, contours=object_contours, hierarchy=object_hierarchy)
@@ -2246,9 +2249,10 @@ def test_plantcv_object_composition_grayscale_input():
     pcv.params.debug_outdir = cache_dir
     # Read in test data
     img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR), 0)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS1), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    object_hierarchy = contours_npz['arr_1']
+    object_contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_CONTOURS), encoding="latin1")
+    object_contours = [object_contours_npz[arr_n] for arr_n in object_contours_npz]
+    object_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_HIERARCHY), encoding="latin1")
+    object_hierarchy = object_hierarchy_npz['arr_0']
     # Test with debug = "plot"
     pcv.params.debug = "plot"
     contours, mask = pcv.object_composition(img=img, contours=object_contours, hierarchy=object_hierarchy)
@@ -2372,7 +2376,7 @@ def test_plantcv_print_image():
     pcv.params.debug_outdir = cache_dir
     # Read in test data
     img, path, img_name = pcv.readimage(filename=os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    filename = os.path.join(cache_dir, 'plantcv_print_image.jpg')
+    filename = os.path.join(cache_dir, 'plantcv_print_image.png')
     pcv.print_image(img=img, filename=filename)
     # Assert that the file was created
     assert os.path.exists(filename) is True
@@ -2784,12 +2788,14 @@ def test_plantcv_roi_objects():
     pcv.params.debug_outdir = cache_dir
     # Read in test data
     img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    roi_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI), encoding="latin1")
-    roi_contour = roi_npz['arr_0']
-    roi_hierarchy = roi_npz['arr_1']
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS1), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    object_hierarchy = contours_npz['arr_1']
+    roi_contour_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_CONTOUR), encoding="latin1")
+    roi_contour = [roi_contour_npz[arr_n] for arr_n in roi_contour_npz]
+    roi_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_HIERARCHY), encoding="latin1")
+    roi_hierarchy = roi_hierarchy_npz['arr_0']
+    object_contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_CONTOURS), encoding="latin1")
+    object_contours = [object_contours_npz[arr_n] for arr_n in object_contours_npz]
+    object_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_HIERARCHY), encoding="latin1")
+    object_hierarchy = object_hierarchy_npz['arr_0']
     # Test with debug = "print"
     pcv.params.debug = "print"
     _ = pcv.roi_objects(img=img, roi_contour=roi_contour, roi_hierarchy=roi_hierarchy,
@@ -2814,12 +2820,14 @@ def test_plantcv_roi_objects():
 def test_plantcv_roi_objects_bad_input():
     # Read in test data
     img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    roi_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI), encoding="latin1")
-    roi_contour = roi_npz['arr_0']
-    roi_hierarchy = roi_npz['arr_1']
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS1), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    object_hierarchy = contours_npz['arr_1']
+    roi_contour_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_CONTOUR), encoding="latin1")
+    roi_contour = [roi_contour_npz[arr_n] for arr_n in roi_contour_npz]
+    roi_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_HIERARCHY), encoding="latin1")
+    roi_hierarchy = roi_hierarchy_npz['arr_0']
+    object_contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_CONTOURS), encoding="latin1")
+    object_contours = [object_contours_npz[arr_n] for arr_n in object_contours_npz]
+    object_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_HIERARCHY), encoding="latin1")
+    object_hierarchy = object_hierarchy_npz['arr_0']
     pcv.params.debug = None
     with pytest.raises(RuntimeError):
         _ = pcv.roi_objects(img=img, roi_type="cut", roi_contour=roi_contour, roi_hierarchy=roi_hierarchy,
@@ -2833,12 +2841,14 @@ def test_plantcv_roi_objects_grayscale_input():
     pcv.params.debug_outdir = cache_dir
     # Read in test data
     img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR), 0)
-    roi_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI), encoding="latin1")
-    roi_contour = roi_npz['arr_0']
-    roi_hierarchy = roi_npz['arr_1']
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS1), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    object_hierarchy = contours_npz['arr_1']
+    roi_contour_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_CONTOUR), encoding="latin1")
+    roi_contour = [roi_contour_npz[arr_n] for arr_n in roi_contour_npz]
+    roi_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_ROI_HIERARCHY), encoding="latin1")
+    roi_hierarchy = roi_hierarchy_npz['arr_0']
+    object_contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_CONTOURS), encoding="latin1")
+    object_contours = [object_contours_npz[arr_n] for arr_n in object_contours_npz]
+    object_hierarchy_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_OBJECT_HIERARCHY), encoding="latin1")
+    object_hierarchy = object_hierarchy_npz['arr_0']
     # Test with debug = "plot"
     pcv.params.debug = "plot"
     kept_contours, kept_hierarchy, mask, area = pcv.roi_objects(img=img, roi_type="partial", roi_contour=roi_contour,
@@ -3578,7 +3588,7 @@ def test_plantcv_morphology_segment_tangent_angle():
     pcv.params.debug_outdir = cache_dir
     skel = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_SKELETON_PRUNED), -1)
     objects = np.load(os.path.join(TEST_DATA, TEST_SKELETON_OBJECTS), encoding="latin1")
-    objs = objects['arr_0']
+    objs = [objects[arr_n] for arr_n in objects]
     pcv.params.debug = "print"
     _ = pcv.morphology.segment_tangent_angle(skel, objs, 2)
     pcv.params.debug = "plot"
@@ -3595,7 +3605,7 @@ def test_plantcv_morphology_segment_id():
     pcv.params.debug_outdir = cache_dir
     skel = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_SKELETON_PRUNED), -1)
     objects = np.load(os.path.join(TEST_DATA, TEST_SKELETON_OBJECTS), encoding="latin1")
-    objs = objects['arr_0']
+    objs = [objects[arr_n] for arr_n in objects]
     pcv.params.debug = "print"
     _ = pcv.morphology.segment_id(skel, objs)
     pcv.params.debug = "plot"
@@ -3617,16 +3627,9 @@ def test_plantcv_morphology_segment_insertion_angle():
     pcv.params.debug = "print"
     insert_angles = pcv.morphology.segment_insertion_angle(pruned, segmented_img, leaf_obj, stem_obj, 10)
     pcv.print_results(os.path.join(cache_dir, "results.txt"))
-    assert pcv.outputs.observations['segment_insertion_angle']['value'] == [24.97999120101794, 50.75442037373474,
-                                                                            56.45078448114704, 64.19513117863062,
-                                                                            45.146799092975584, 57.80220388909291,
-                                                                            66.1559145648012, 77.57112958360631,
-                                                                            39.245580536881675, 84.24558178912076,
-                                                                            84.24558178912076, 50.75442037373474,
-                                                                            26.337516798081822, 58.46112771993523,
-                                                                            39.245580536881675, 28.645972294617223,
-                                                                            35.371548466069214, 20.64797104069403,
-                                                                            62.89851538735208]
+    assert pcv.outputs.observations['segment_insertion_angle']['value'][:6] == ['NA', 'NA', 'NA' ,24.97999120101794,
+                                                                            50.75442037373474,
+                                                                            56.45078448114704]
     pcv.outputs.clear()
 
 
@@ -4766,6 +4769,32 @@ def test_plantcv_threshold_custom_range_bad_input_channel():
         _, _ = pcv.threshold.custom_range(img, lower_thresh=[0], upper_thresh=[2], channel='CMYK')
 
 
+def test_plantcv_threshold_saturation():
+    # Test cache directory
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_threshold_saturation")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    # Read in test data
+    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
+    # Test with debug = "print"
+    pcv.params.debug = "print"
+    _ = pcv.threshold.saturation(rgb_img=rgb_img, threshold=254, channel="all")
+    # Test with debug = "plot"
+    pcv.params.debug = "plot"
+    thresh = pcv.threshold.saturation(rgb_img=rgb_img, threshold=254, channel="any")
+    assert np.sum(thresh) == 920050455 and len(np.unique(thresh)) == 2
+
+
+def test_plantcv_threshold_saturation_bad_input():
+    # Test cache directory
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_threshold_saturation_bad_input")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    # Read in test data
+    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
+    with pytest.raises(RuntimeError):
+        _ = pcv.threshold.saturation(rgb_img=rgb_img, threshold=254, channel="red")
+
 def test_plantcv_threshold_triangle():
     # Test cache directory
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_threshold_triangle")
@@ -4830,7 +4859,7 @@ def test_plantcv_visualize_pseudocolor():
     mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
     contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
     obj_contour = contours_npz['arr_0']
-    filename = os.path.join(cache_dir, 'plantcv_pseudo_image.jpg')
+    filename = os.path.join(cache_dir, 'plantcv_pseudo_image.png')
     # Test with debug = "print"
     pcv.params.debug = "print"
     _ = pcv.visualize.pseudocolor(gray_img=img, mask=None)
@@ -4964,9 +4993,9 @@ def test_plantcv_visualize_clustered_contours():
     roi_objects = np.load(os.path.join(TEST_DATA, TEST_INPUT_VISUALIZE_CONTOUR), encoding="latin1")
     hierarchy = np.load(os.path.join(TEST_DATA, TEST_INPUT_VISUALIZE_HIERARCHY), encoding="latin1")
     cluster_i = np.load(os.path.join(TEST_DATA, TEST_INPUT_VISUALIZE_CLUSTERS), encoding="latin1")
-    objs = roi_objects['arr_0']
+    objs = [roi_objects[arr_n] for arr_n in roi_objects]
     obj_hierarchy = hierarchy['arr_0']
-    cluster = cluster_i['arr_0']
+    cluster = [cluster_i[arr_n] for arr_n in cluster_i]
     # Test in print mode
     pcv.params.debug = "print"
     _ = pcv.visualize.clustered_contours(img=img, grouped_contour_indices=cluster, roi_objects=objs,
