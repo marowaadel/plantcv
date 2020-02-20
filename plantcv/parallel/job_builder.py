@@ -37,19 +37,19 @@ def job_builder(meta, config, workflow):
             # Create a JSON template for the image
             img_meta = {"metadata": deepcopy(config.config["metadata_terms"]), "observations": {}}
             # Create an output file to store the image processing results and populate with metadata
-            outfile = open(os.path.join(".", job_dir, img + ".txt"), 'w')
+            outfile = open(os.path.join(".", job_dir, os.path.basename(image["path"]) + ".txt"), 'w')
             # Store metadata in JSON
             img_meta["metadata"]["image"] = {
                     "label": "image file",
                     "datatype": "<class 'str'>",
                     "value": image["path"]
                 }
-        # Valid metadata
-        for m in list(config.config["metadata_terms"].keys()):
-            img_meta["metadata"][m]["value"] = meta[img][m]
-        json.dump(img_meta, outfile)
+            # Valid metadata
+            for m in list(config.config["metadata_terms"].keys()):
+                img_meta["metadata"][m]["value"] = meta[img][m]
+            json.dump(img_meta, outfile)
 
-        outfile.close()
+            outfile.close()
 
         # Build job
         job_parts = ["python", workflow, "--image", os.path.join(meta[img]['path'], img),

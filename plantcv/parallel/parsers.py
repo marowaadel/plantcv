@@ -72,7 +72,8 @@ def metadata_parser(config):
                     # Not all images in a directory may have the same metadata structure only keep those that do
                     if len(metadata) == meta_count:
                         # Image metadata
-                        img_meta = {'path': os.path.join(dirpath, filename)}
+                        img_path = os.path.join(dirpath, filename)
+                        img_meta = {}
                         img_pass = 1
                         # For each of the type of metadata PlantCV keeps track of
                         for term in config.config["metadata_terms"]:
@@ -111,9 +112,9 @@ def metadata_parser(config):
                             else:
                                 img_key = filename
                             if img_key in meta:
-                                meta[img_key].append(img_meta)
+                                meta[img_key][img_path] = img_meta
                             else:
-                                meta[img_key] = [img_meta]
+                                meta[img_key] = {img_path: img_meta}
     else:
         # Compile regular expression to remove image file extensions
         pattern = re.escape('.') + config.config["imgformat"] + '$'
@@ -133,7 +134,8 @@ def metadata_parser(config):
                     # Not all images in a directory may have the same metadata structure only keep those that do
                     if len(metadata) == meta_count:
                         # Image metadata
-                        img_meta = {'path': os.path.join(dirpath, filename)}
+                        img_path = os.path.join(dirpath, filename)
+                        img_meta = {}
                         img_pass = 1
                         # For each of the type of metadata PlantCV keeps track of
                         for term in config.config["metadata_terms"]:
@@ -163,9 +165,9 @@ def metadata_parser(config):
                             else:
                                 img_key = filename
                             if img_key in meta:
-                                meta[img_key].append(img_meta)
+                                meta[img_key][img_path] = img_meta
                             else:
-                                meta[img_key] = [img_meta]
+                                meta[img_key] = {img_path: img_meta}
 
     return meta
 ###########################################
