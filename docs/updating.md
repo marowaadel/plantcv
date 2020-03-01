@@ -342,15 +342,16 @@ pages for more details on the input and output variable types.
 * pre v3.0dev2: device, img_eh = **plantcv.hist_equalization**(*img, device, debug=None*)
 * post v3.0dev2: img_eh = **plantcv.hist_equalization**(*gray_img*)
 
+#### plantcv.hyperspectral.analyze_index
+
+* pre v3.7: NA
+* post v3.7: **plantcv.hyperspectral.analyze_index**(*index_array, mask*)
+* post v3.8: index_histogram = **plantcv.hyperspectral.analyze_index**(*index_array, mask, histplot=False, bins=100, max_bin=None, min_bin=None*)
+
 #### plantcv.hyperspectral.analyze_spectral
 
 * pre v3.7: NA
 * post v3.7: spectral_histogram = **plantcv.hyperspectral.analyze_spectral**(*array, mask, histplot=True*)
-
-#### plantcv.hyperspectral.analyze_index
-
-* pre v3.7: NA
-* post v3.7: index_array = **plantcv.hyperspectral.extract_index**(*index_array, mask*)
 
 #### plantcv.hyperspectral.extract_index
 
@@ -593,6 +594,11 @@ pages for more details on the input and output variable types.
 * post v3.0dev2: roi_contour, roi_hierarchy = **plantcv.roi.rectangle**(*x, y, h, w, img*)
 * post v3.2: roi_contour, roi_hierarchy = **plantcv.roi.rectangle**(*img, x, y, h, w*)
 
+#### plantcv.roi.roi2mask
+
+* pre v3.8: NA
+* post v3.8: mask = **pcv.roi.roi2mask**(*img, contour*)
+
 #### plantcv.roi.multi
 
 * pre v3.1: NA
@@ -743,6 +749,12 @@ pages for more details on the input and output variable types.
 
 * pre v3.2: NA
 * post v3.2: colored_img = pcv.visualize.colorize_masks(classes, colors)
+
+
+#### plantcv.visualize.colorspaces
+
+* pre v3.8: NA
+* post v3.8: plotting_img = pcv.visualize.colorspaces(rgb_img)
 
 #### plantcv.visualize.histogram
 

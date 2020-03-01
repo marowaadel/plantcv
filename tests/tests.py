@@ -2804,6 +2804,22 @@ def test_plantcv_rgb2gray():
     assert all([i == j] for i, j in zip(np.shape(gray), TEST_GRAY_DIM))
 
 
+def test_plantcv_roi2mask():
+    # Test cache directory
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_acute_vertex")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    # Read in test data
+    img = cv2.imread(os.path.join(TEST_DATA, TEST_VIS_SMALL))
+    contours_npz = np.load(os.path.join(TEST_DATA, TEST_VIS_COMP_CONTOUR), encoding="latin1")
+    obj_contour = contours_npz['arr_0']
+    pcv.params.debug = "plot"
+    _ = pcv.roi.roi2mask(img=img, contour=obj_contour)
+    pcv.params.debug = "print"
+    mask = pcv.roi.roi2mask(img=img, contour=obj_contour)
+    assert np.shape(mask)[0:2] == np.shape(img)[0:2] and np.sum(mask) == 255
+
+
 def test_plantcv_roi_objects():
     # Test cache directory
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_roi_objects")
@@ -3762,6 +3778,17 @@ def test_plantcv_hyperspectral_extract_index_savi():
     assert np.shape(index_array.array_data) == (1,1600) and np.max(index_array.pseudo_rgb) == 255
 
 
+def test_plantcv_hyperspectral_extract_index_pri():
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_hyperspectral_extract_index_savi")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    pcv.params.debug = "plot"
+    spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
+    array_data = pcv.hyperspectral.read_data(filename=spectral_filename)
+    index_array = pcv.hyperspectral.extract_index(array=array_data, index="PRI", distance=801)
+    assert np.shape(index_array.array_data) == (1,1600) and np.max(index_array.pseudo_rgb) == 255
+
+
 def test_plantcv_hyperspectral_extract_index_ndvi_bad_input():
     spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
     pcv.params.debug=None
@@ -3787,6 +3814,15 @@ def test_plantcv_hyperspectral_extract_index_savi_bad_input():
     index_array = pcv.hyperspectral.extract_index(array=array_data, index="SAVI", distance=801)
     with pytest.raises(RuntimeError):
         index_array = pcv.hyperspectral.extract_index(array=index_array, index="SAVI")
+
+
+def test_plantcv_hyperspectral_extract_index_pri_bad_input():
+    spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
+    pcv.params.debug = None
+    array_data = pcv.hyperspectral.read_data(filename=spectral_filename)
+    index_array = pcv.hyperspectral.extract_index(array=array_data, index="pri", distance=801)
+    with pytest.raises(RuntimeError):
+        index_array = pcv.hyperspectral.extract_index(array=index_array, index="PRI")
 
 
 def test_plantcv_hyperspectral_extract_index_bad_input_index():
@@ -3819,13 +3855,26 @@ def test_plantcv_hyperspectral_analyze_index():
     pcv.params.debug_outdir = cache_dir
     spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
     array_data = pcv.hyperspectral.read_data(filename=spectral_filename)
-    index_array = pcv.hyperspectral.extract_index(array=array_data, index="SAVI", distance=801)
-    mask_img = cv2.imread(os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_MASK), -1)
+    index_array = pcv.hyperspectral.extract_index(array=array_data, index="savi", distance=801)
+    mask_img = np.ones(np.shape(index_array.array_data), dtype=np.uint8) * 255
     pcv.params.debug = "print"
-    pcv.hyperspectral.analyze_index(index_array=index_array, mask=mask_img)
+    pcv.hyperspectral.analyze_index(index_array=index_array, mask=mask_img, histplot=True)
     pcv.params.debug = "plot"
-    pcv.hyperspectral.analyze_index(index_array=index_array, mask=mask_img)
+    pcv.hyperspectral.analyze_index(index_array=index_array, mask=mask_img, histplot=True)
     assert pcv.outputs.observations['mean_index_savi']['value'] > 0
+
+
+def test_plantcv_hyperspectral_analyze_index_set_range():
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_hyperspectral_analyze_index")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
+    array_data = pcv.hyperspectral.read_data(filename=spectral_filename)
+    index_array = pcv.hyperspectral.extract_index(array=array_data, index="savi", distance=801)
+    mask_img = np.ones(np.shape(index_array.array_data), dtype=np.uint8) * 255
+    pcv.hyperspectral.analyze_index(index_array=index_array, mask=mask_img, histplot=True, min_bin=0, max_bin=1)
+    assert pcv.outputs.observations['mean_index_savi']['value'] > 0
+
 
 def test_plantcv_hyperspectral_analyze_index_bad_input_mask():
     pcv.params.debug = None
@@ -5029,6 +5078,30 @@ def test_plantcv_visualize_clustered_contours():
                                          roi_obj_hierarchy=obj_hierarchy)
     assert len(np.unique(cluster_img)) == 37
 
+
+def test_plantcv_visualize_colorspaces():
+    # Test cache directory
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_plot_hist")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    # Read in test data
+    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
+    pcv.params.debug = "plot"
+    vis_img_small = pcv.visualize.colorspaces(rgb_img=img, original_img=False)
+    pcv.params.debug = "print"
+    vis_img = pcv.visualize.colorspaces(rgb_img=img)
+    assert np.shape(vis_img)[1] > (np.shape(img)[1]) and np.shape(vis_img_small)[1] > (np.shape(img)[1])
+
+
+def test_plantcv_visualize_colorspaces_bad_input():
+    # Test cache directory
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_plot_hist")
+    os.mkdir(cache_dir)
+    pcv.params.debug_outdir = cache_dir
+    # Read in test data
+    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_GRAY), -1)
+    with pytest.raises(RuntimeError):
+        _ = pcv.visualize.colorspaces(rgb_img=img)
 
 # ##############################
 # Tests for the utils subpackage
