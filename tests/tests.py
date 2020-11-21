@@ -126,11 +126,55 @@ def test_data():
             }
         }
     }
+    # Metadata result for VIS only data
+    metadata_vis_only = {
+        'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
+            'path': os.path.join(datadir, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'camera': 'SV',
+            'imgtype': 'VIS',
+            'zoom': 'z1',
+            'exposure': 'e82',
+            'gain': 'g0',
+            'frame': '0',
+            'lifter': 'h1',
+            'timestamp': '2014-10-22 17:49:35.187',
+            'id': '117770',
+            'plantbarcode': 'Ca031AA010564',
+            'treatment': 'none',
+            'cartag': '2143',
+            'measurementlabel': 'C002ch_092214_biomass',
+            'other': 'none'
+        }
+    }
+    # Metadata result for NIR only data
+    metadata_nir_only = {
+        'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
+            'path': os.path.join(datadir, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
+            'camera': 'SV',
+            'imgtype': 'NIR',
+            'zoom': 'z1',
+            'exposure': 'e65',
+            'gain': 'g0',
+            'frame': '0',
+            'lifter': 'h1',
+            'timestamp': '2014-10-22 17:49:35.187',
+            'id': '117779',
+            'plantbarcode': 'Ca031AA010564',
+            'treatment': 'none',
+            'cartag': '2143',
+            'measurementlabel': 'C002ch_092214_biomass',
+            'other': 'none'
+        }
+    }
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
         "img_flatdir": os.path.join(datadir, "images"),
-        "workflow_script": os.path.join(datadir, "plantcv-script.py")
+        "img_flatdir_wdates": os.path.join(datadir, "images_w_date"),
+        "img_snapshotdir": os.path.join(datadir, "snapshots"),
+        "workflow_script": os.path.join(datadir, "plantcv-script.py"),
+        "metadata_vis_only": metadata_vis_only,
+        "metadata_nir_only": metadata_nir_only
     }
 
 
@@ -410,13 +454,13 @@ def test_plantcv_parallel_workflowconfig_invalid_cluster():
     assert not config.validate_config()
 
 
-def test_plantcv_parallel_metadata_parser_snapshots():
+def test_plantcv_parallel_metadata_parser_snapshots(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_snapshots", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS", "camera": "SV"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -424,16 +468,16 @@ def test_plantcv_parallel_metadata_parser_snapshots():
     config.imgformat = "jpg"
 
     meta = plantcv.parallel.metadata_parser(config=config)
-    assert meta == METADATA_VIS_ONLY
+    assert meta == test_data["metadata_vis_only"]
 
 
-def test_plantcv_parallel_metadata_parser_snapshots_coimg():
+def test_plantcv_parallel_metadata_parser_snapshots_coimg(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_snapshots_coimg", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -442,16 +486,16 @@ def test_plantcv_parallel_metadata_parser_snapshots_coimg():
     config.coprocess = "FAKE"
 
     meta = plantcv.parallel.metadata_parser(config=config)
-    assert meta == METADATA_VIS_ONLY
+    assert meta == test_data["metadata_vis_only"]
 
 
-def test_plantcv_parallel_metadata_parser_images():
+def test_plantcv_parallel_metadata_parser_images(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_IMG_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images", "output.json")
+    config.input_dir = test_data["img_flatdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014"
     config.end_date = "2014"
@@ -461,7 +505,7 @@ def test_plantcv_parallel_metadata_parser_images():
     meta = plantcv.parallel.metadata_parser(config=config)
     expected = {
         'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'images', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'path': os.path.join(test_data["img_flatdir"], 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
             'camera': 'SV',
             'imgtype': 'VIS',
             'zoom': 'z1',
@@ -480,13 +524,13 @@ def test_plantcv_parallel_metadata_parser_images():
     assert meta == expected
 
 
-def test_plantcv_parallel_metadata_parser_regex():
+def test_plantcv_parallel_metadata_parser_regex(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_IMG_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images", "output.json")
+    config.input_dir = test_data["img_flatdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -497,7 +541,7 @@ def test_plantcv_parallel_metadata_parser_regex():
     meta = plantcv.parallel.metadata_parser(config=config)
     expected = {
         'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'images', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'path': os.path.join(test_data["img_flatdir"], 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
             'camera': 'SV',
             'imgtype': 'VIS',
             'zoom': 'z1',
@@ -516,14 +560,13 @@ def test_plantcv_parallel_metadata_parser_regex():
     assert meta == expected
 
 
-def test_plantcv_parallel_metadata_parser_images_outside_daterange():
+def test_plantcv_parallel_metadata_parser_images_outside_daterange(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_IMG_DIR2)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images_outside_daterange",
-                               "output.json")
+    config.input_dir = test_data["img_flatdir_wdates"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "timestamp"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "NIR"}
     config.start_date = "1970-01-01 00_00_00"
     config.end_date = "1970-01-01 00_00_00"
@@ -535,13 +578,13 @@ def test_plantcv_parallel_metadata_parser_images_outside_daterange():
     assert meta == {}
 
 
-def test_plantcv_parallel_metadata_parser_no_default_dates():
+def test_plantcv_parallel_metadata_parser_no_default_dates(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_no_default_dates", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS", "camera": "SV", "id": "117770"}
     config.start_date = None
     config.end_date = None
@@ -549,7 +592,7 @@ def test_plantcv_parallel_metadata_parser_no_default_dates():
     config.imgformat = "jpg"
 
     meta = plantcv.parallel.metadata_parser(config=config)
-    assert meta == METADATA_VIS_ONLY
+    assert meta == test_data["metadata_vis_only"]
 
 
 def test_plantcv_parallel_check_date_range_wrongdateformat():
@@ -563,14 +606,13 @@ def test_plantcv_parallel_check_date_range_wrongdateformat():
             start_date, end_date, img_time, date_format)
 
 
-def test_plantcv_parallel_metadata_parser_snapshot_outside_daterange():
+def test_plantcv_parallel_metadata_parser_snapshot_outside_daterange(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_snapshot_outside_daterange",
-                               "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "1970-01-01 00:00:00.0"
     config.end_date = "1970-01-01 00:00:00.0"
@@ -582,13 +624,13 @@ def test_plantcv_parallel_metadata_parser_snapshot_outside_daterange():
     assert meta == {}
 
 
-def test_plantcv_parallel_metadata_parser_fail_images():
+def test_plantcv_parallel_metadata_parser_fail_images(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_fail_images", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"cartag": "VIS"}
     config.start_date = "1970-01-01 00:00:00.0"
     config.end_date = "1970-01-01 00:00:00.0"
@@ -597,16 +639,16 @@ def test_plantcv_parallel_metadata_parser_fail_images():
     config.coprocess = "NIR"
 
     meta = plantcv.parallel.metadata_parser(config=config)
-    assert meta == METADATA_NIR_ONLY
+    assert meta == test_data["metadata_nir_only"]
 
 
-def test_plantcv_parallel_metadata_parser_images_with_frame():
+def test_plantcv_parallel_metadata_parser_images_with_frame(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images_with_frame", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -618,7 +660,7 @@ def test_plantcv_parallel_metadata_parser_images_with_frame():
 
     assert meta == {
         'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
             'camera': 'SV',
             'imgtype': 'VIS',
             'zoom': 'z1',
@@ -636,7 +678,7 @@ def test_plantcv_parallel_metadata_parser_images_with_frame():
             'coimg': 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'
         },
         'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
             'camera': 'SV',
             'imgtype': 'NIR',
             'zoom': 'z1',
@@ -655,14 +697,13 @@ def test_plantcv_parallel_metadata_parser_images_with_frame():
     }
 
 
-def test_plantcv_parallel_metadata_parser_images_no_frame():
+def test_plantcv_parallel_metadata_parser_images_no_frame(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images_no_frame",
-                               "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "camera", "X", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -674,7 +715,7 @@ def test_plantcv_parallel_metadata_parser_images_no_frame():
 
     assert meta == {
         'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
             'camera': 'SV',
             'imgtype': 'VIS',
             'zoom': 'z1',
@@ -692,7 +733,7 @@ def test_plantcv_parallel_metadata_parser_images_no_frame():
             'coimg': 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'
         },
         'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
             'camera': 'SV',
             'imgtype': 'NIR',
             'zoom': 'z1',
@@ -711,13 +752,13 @@ def test_plantcv_parallel_metadata_parser_images_no_frame():
     }
 
 
-def test_plantcv_parallel_metadata_parser_images_no_camera():
+def test_plantcv_parallel_metadata_parser_images_no_camera(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_metadata_parser_images_no_frame", "output.json")
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
     config.filename_metadata = ["imgtype", "X", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
+    config.workflow = test_data["workflow_script"]
     config.metadata_filters = {"imgtype": "VIS"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -729,7 +770,7 @@ def test_plantcv_parallel_metadata_parser_images_no_camera():
 
     assert meta == {
         'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
             'camera': 'none',
             'imgtype': 'VIS',
             'zoom': 'z1',
@@ -747,7 +788,7 @@ def test_plantcv_parallel_metadata_parser_images_no_camera():
             'coimg': 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'
         },
         'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
-            'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
+            'path': os.path.join(test_data["img_snapshotdir"], 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
             'camera': 'none',
             'imgtype': 'NIR',
             'zoom': 'z1',
@@ -764,6 +805,16 @@ def test_plantcv_parallel_metadata_parser_images_no_camera():
             'other': 'none'
         }
     }
+
+
+def test_plantcv_parallel_convert_datetime_to_unixtime():
+    unix_time = plantcv.parallel.convert_datetime_to_unixtime(timestamp_str="1970-01-01", date_format="%Y-%m-%d")
+    assert unix_time == 0
+
+
+def test_plantcv_parallel_convert_datetime_to_unixtime_bad_strptime():
+    with pytest.raises(SystemExit):
+        _ = plantcv.parallel.convert_datetime_to_unixtime(timestamp_str="1970-01-01", date_format="%Y-%m")
 
 
 def test_plantcv_parallel_job_builder_single_image():
@@ -858,16 +909,6 @@ def test_plantcv_parallel_multiprocess_create_dask_cluster():
 def test_plantcv_parallel_multiprocess_create_dask_cluster_invalid_cluster():
     with pytest.raises(ValueError):
         _ = plantcv.parallel.create_dask_cluster(cluster="Skynet", cluster_config={})
-
-
-def test_plantcv_parallel_convert_datetime_to_unixtime():
-    unix_time = plantcv.parallel.convert_datetime_to_unixtime(timestamp_str="1970-01-01", date_format="%Y-%m-%d")
-    assert unix_time == 0
-
-
-def test_plantcv_parallel_convert_datetime_to_unixtime_bad_strptime():
-    with pytest.raises(SystemExit):
-        _ = plantcv.parallel.convert_datetime_to_unixtime(timestamp_str="1970-01-01", date_format="%Y-%m")
 
 
 def test_plantcv_parallel_multiprocess():
