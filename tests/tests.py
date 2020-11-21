@@ -19,6 +19,121 @@ import matplotlib
 import dask
 from dask.distributed import Client
 
+
+@pytest.fixture(scope="session")
+def test_data():
+    # Test input data directory
+    datadir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+    # WorkflowConfig saved template dictionary
+    workflowconfig_template = {
+        "input_dir": "",
+        "json": "",
+        "filename_metadata": [],
+        "workflow": "",
+        "img_outdir": "./output_images",
+        "tmp_dir": None,
+        "start_date": None,
+        "end_date": None,
+        "imgformat": "png",
+        "delimiter": "_",
+        "metadata_filters": {},
+        "timestampformat": "%Y-%m-%d %H:%M:%S.%f",
+        "writeimg": False,
+        "other_args": [],
+        "coprocess": None,
+        "cleanup": True,
+        "append": True,
+        "cluster": "LocalCluster",
+        "cluster_config": {
+            "n_workers": 1,
+            "cores": 1,
+            "memory": "1GB",
+            "disk": "1GB",
+            "log_directory": None,
+            "local_directory": None,
+            "job_extra": None
+        },
+        "metadata_terms": {
+            "camera": {
+                "label": "camera identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "imgtype": {
+                "label": "image type",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "zoom": {
+                "label": "camera zoom setting",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "exposure": {
+                "label": "camera exposure setting",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "gain": {
+                "label": "camera gain setting",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "frame": {
+                "label": "image series frame identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "lifter": {
+                "label": "imaging platform height setting",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "timestamp": {
+                "label": "datetime of image",
+                "datatype": "<class 'datetime.datetime'>",
+                "value": None
+            },
+            "id": {
+                "label": "image identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "plantbarcode": {
+                "label": "plant barcode identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "treatment": {
+                "label": "treatment identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "cartag": {
+                "label": "plant carrier identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "measurementlabel": {
+                "label": "experiment identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            },
+            "other": {
+                "label": "other identifier",
+                "datatype": "<class 'str'>",
+                "value": "none"
+            }
+        }
+    }
+    return {
+        "workflowconfig_template": workflowconfig_template,
+        "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
+        "img_flatdir": os.path.join(datadir, "images"),
+        "workflow_script": os.path.join(datadir, "plantcv-script.py")
+    }
+
+
 PARALLEL_TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parallel_data")
 TEST_TMPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache")
 TEST_IMG_DIR = "images"
@@ -194,76 +309,69 @@ def setup_function():
 # ##############################
 # Tests for the parallel subpackage
 # ##############################
-def test_plantcv_parallel_workflowconfig_save_config_file():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_save_config_file")
-    os.mkdir(cache_dir)
-    # Define output path/filename
-    template_file = os.path.join(cache_dir, "config.json")
+def test_plantcv_parallel_workflowconfig_save_config_file(test_data, tmpdir):
+    # Create a tmp JSON file
+    template_file = tmpdir.mkdir("sub").join("config.json")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Save template file
-    config.save_config(config_file=template_file)
+    config.save_config(config_file=str(template_file))
+    content = json.load(template_file)
 
-    assert os.path.exists(template_file)
+    assert test_data["workflowconfig_template"] == content
 
 
-def test_plantcv_parallel_workflowconfig_import_config_file():
-    # Define input path/filename
-    config_file = os.path.join(PARALLEL_TEST_DATA, "workflow_config_template.json")
+def test_plantcv_parallel_workflowconfig_import_config_file(test_data):
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # import config file
-    config.import_config(config_file=config_file)
+    config.import_config(config_file=test_data["workflowconfig_template_file"])
 
-    assert config.cluster == "LocalCluster"
+    assert vars(config) == test_data["workflowconfig_template"]
 
 
-def test_plantcv_parallel_workflowconfig_validate_config():
+def test_plantcv_parallel_workflowconfig_validate_config(test_data, tmpdir):
     # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_validate_config")
-    os.mkdir(cache_dir)
+    img_outdir = tmpdir.mkdir("sub")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set valid values in config
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, "images")
-    config.json = os.path.join(cache_dir, "valid_config.json")
+    config.input_dir = test_data["img_flatdir"]
+    config.json = "valid_config.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
-    config.img_outdir = cache_dir
+    config.workflow = test_data["workflow_script"]
+    config.img_outdir = img_outdir
     # Validate config
     assert config.validate_config()
 
 
-def test_plantcv_parallel_workflowconfig_invalid_startdate():
+def test_plantcv_parallel_workflowconfig_invalid_startdate(test_data, tmpdir):
     # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_invalid_startdate")
-    os.mkdir(cache_dir)
+    img_outdir = tmpdir.mkdir("sub")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set valid values in config
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, "images")
-    config.json = os.path.join(cache_dir, "valid_config.json")
+    config.input_dir = test_data["img_flatdir"]
+    config.json = "valid_config.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
-    config.img_outdir = cache_dir
+    config.workflow = test_data["workflow_script"]
+    config.img_outdir = img_outdir
     config.start_date = "2020-05-10"
     # Validate config
     assert not config.validate_config()
 
 
-def test_plantcv_parallel_workflowconfig_invalid_enddate():
+def test_plantcv_parallel_workflowconfig_invalid_enddate(test_data, tmpdir):
     # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_invalid_enddate")
-    os.mkdir(cache_dir)
+    img_outdir = tmpdir.mkdir("sub")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set valid values in config
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, "images")
-    config.json = os.path.join(cache_dir, "valid_config.json")
+    config.input_dir = config.input_dir = test_data["img_flatdir"]
+    config.json = "valid_config.json"
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
-    config.img_outdir = cache_dir
+    config.workflow = config.workflow = test_data["workflow_script"]
+    config.img_outdir = img_outdir
     config.end_date = "2020-05-10"
     config.timestampformat = "%Y%m%d"
     # Validate config
@@ -271,9 +379,6 @@ def test_plantcv_parallel_workflowconfig_invalid_enddate():
 
 
 def test_plantcv_parallel_workflowconfig_invalid_metadata_terms():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_invalid_metadata_terms")
-    os.mkdir(cache_dir)
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set invalid values in config
@@ -285,9 +390,6 @@ def test_plantcv_parallel_workflowconfig_invalid_metadata_terms():
 
 
 def test_plantcv_parallel_workflowconfig_invalid_filename_metadata():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_invalid_filename_metadata")
-    os.mkdir(cache_dir)
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set invalid values in config
@@ -298,9 +400,6 @@ def test_plantcv_parallel_workflowconfig_invalid_filename_metadata():
 
 
 def test_plantcv_parallel_workflowconfig_invalid_cluster():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_workflowconfig_invalid_cluster")
-    os.mkdir(cache_dir)
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
     # Set invalid values in config
