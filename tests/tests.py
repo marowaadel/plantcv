@@ -166,6 +166,44 @@ def test_data():
             'other': 'none'
         }
     }
+    # Metadata result for VIS and NIR coprocessed data
+    metadata_coprocess = {
+        'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
+            'path': os.path.join(datadir, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
+            'camera': 'SV',
+            'imgtype': 'VIS',
+            'zoom': 'z1',
+            'exposure': 'e82',
+            'gain': 'g0',
+            'frame': '0',
+            'lifter': 'h1',
+            'timestamp': '2014-10-22 17:49:35.187',
+            'id': '117770',
+            'plantbarcode': 'Ca031AA010564',
+            'treatment': 'none',
+            'cartag': '2143',
+            'measurementlabel': 'C002ch_092214_biomass',
+            'other': 'none',
+            'coimg': 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'
+        },
+        'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
+            'path': os.path.join(datadir, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
+            'camera': 'SV',
+            'imgtype': 'NIR',
+            'zoom': 'z1',
+            'exposure': 'e65',
+            'gain': 'g0',
+            'frame': '0',
+            'lifter': 'h1',
+            'timestamp': '2014-10-22 17:49:35.187',
+            'id': '117779',
+            'plantbarcode': 'Ca031AA010564',
+            'treatment': 'none',
+            'cartag': '2143',
+            'measurementlabel': 'C002ch_092214_biomass',
+            'other': 'none'
+        }
+    }
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
@@ -174,132 +212,15 @@ def test_data():
         "img_snapshotdir": os.path.join(datadir, "snapshots"),
         "workflow_script": os.path.join(datadir, "plantcv-script.py"),
         "metadata_vis_only": metadata_vis_only,
-        "metadata_nir_only": metadata_nir_only
+        "metadata_nir_only": metadata_nir_only,
+        "metadata_coprocess": metadata_coprocess
     }
 
 
 PARALLEL_TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parallel_data")
 TEST_TMPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache")
-TEST_IMG_DIR = "images"
-TEST_IMG_DIR2 = "images_w_date"
-TEST_SNAPSHOT_DIR = "snapshots"
 TEST_PIPELINE = os.path.join(PARALLEL_TEST_DATA, "plantcv-script.py")
-META_FIELDS = {"imgtype": 0, "camera": 1, "frame": 2, "zoom": 3, "lifter": 4, "gain": 5, "exposure": 6, "id": 7}
-VALID_META = {
-    # Camera settings
-    "camera": {
-        "label": "camera identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "imgtype": {
-        "label": "image type",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "zoom": {
-        "label": "camera zoom setting",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "exposure": {
-        "label": "camera exposure setting",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "gain": {
-        "label": "camera gain setting",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "frame": {
-        "label": "image series frame identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "lifter": {
-        "label": "imaging platform height setting",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    # Date-Time
-    "timestamp": {
-        "label": "datetime of image",
-        "datatype": "<class 'datetime.datetime'>",
-        "value": None
-    },
-    # Sample attributes
-    "id": {
-        "label": "image identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "plantbarcode": {
-        "label": "plant barcode identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "treatment": {
-        "label": "treatment identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    "cartag": {
-        "label": "plant carrier identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    # Experiment attributes
-    "measurementlabel": {
-        "label": "experiment identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    },
-    # Other
-    "other": {
-        "label": "other identifier",
-        "datatype": "<class 'str'>",
-        "value": "none"
-    }
-}
 
-METADATA_COPROCESS = {
-    'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-        'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
-        'camera': 'SV',
-        'imgtype': 'VIS',
-        'zoom': 'z1',
-        'exposure': 'e82',
-        'gain': 'g0',
-        'frame': '0',
-        'lifter': 'h1',
-        'timestamp': '2014-10-22 17:49:35.187',
-        'id': '117770',
-        'plantbarcode': 'Ca031AA010564',
-        'treatment': 'none',
-        'cartag': '2143',
-        'measurementlabel': 'C002ch_092214_biomass',
-        'other': 'none',
-        'coimg': 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'
-    },
-    'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
-        'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
-        'camera': 'SV',
-        'imgtype': 'NIR',
-        'zoom': 'z1',
-        'exposure': 'e65',
-        'gain': 'g0',
-        'frame': '0',
-        'lifter': 'h1',
-        'timestamp': '2014-10-22 17:49:35.187',
-        'id': '117779',
-        'plantbarcode': 'Ca031AA010564',
-        'treatment': 'none',
-        'cartag': '2143',
-        'measurementlabel': 'C002ch_092214_biomass',
-        'other': 'none'
-    }
-}
 METADATA_VIS_ONLY = {
     'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
         'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
@@ -319,25 +240,7 @@ METADATA_VIS_ONLY = {
         'other': 'none'
     }
 }
-METADATA_NIR_ONLY = {
-    'NIR_SV_0_z1_h1_g0_e65_117779.jpg': {
-        'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'NIR_SV_0_z1_h1_g0_e65_117779.jpg'),
-        'camera': 'SV',
-        'imgtype': 'NIR',
-        'zoom': 'z1',
-        'exposure': 'e65',
-        'gain': 'g0',
-        'frame': '0',
-        'lifter': 'h1',
-        'timestamp': '2014-10-22 17:49:35.187',
-        'id': '117779',
-        'plantbarcode': 'Ca031AA010564',
-        'treatment': 'none',
-        'cartag': '2143',
-        'measurementlabel': 'C002ch_092214_biomass',
-        'other': 'none'
-    }
-}
+
 # Set the temp directory for dask
 dask.config.set(temporary_directory=TEST_TMPDIR)
 
@@ -817,18 +720,17 @@ def test_plantcv_parallel_convert_datetime_to_unixtime_bad_strptime():
         _ = plantcv.parallel.convert_datetime_to_unixtime(timestamp_str="1970-01-01", date_format="%Y-%m")
 
 
-def test_plantcv_parallel_job_builder_single_image():
-    # Create cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_job_builder_single_image")
-    os.mkdir(cache_dir)
+def test_plantcv_parallel_job_builder_single_image(test_data, tmpdir):
+    # Create tmp directory
+    tmp_dir = tmpdir.mkdir("sub")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(cache_dir, "output.json")
-    config.tmp_dir = cache_dir
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
+    config.tmp_dir = str(tmp_dir)
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
-    config.img_outdir = cache_dir
+    config.workflow = test_data["workflow_script"]
+    config.img_outdir = "img_outdir"
     config.metadata_filters = {"imgtype": "VIS", "camera": "SV"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -837,13 +739,13 @@ def test_plantcv_parallel_job_builder_single_image():
     config.other_args = ["--other", "on"]
     config.writeimg = True
 
-    jobs = plantcv.parallel.job_builder(meta=METADATA_VIS_ONLY, config=config)
+    jobs = plantcv.parallel.job_builder(meta=test_data["metadata_vis_only"], config=config)
 
-    image_name = list(METADATA_VIS_ONLY.keys())[0]
-    result_file = os.path.join(cache_dir, image_name + '.txt')
+    image_name = list(test_data["metadata_vis_only"].keys())[0]
+    result_file = os.path.join("tmp_dir", image_name + '.txt')
 
-    expected = ['python', TEST_PIPELINE, '--image', METADATA_VIS_ONLY[image_name]['path'], '--outdir',
-                cache_dir, '--result', result_file, '--writeimg', '--other', 'on']
+    expected = ['python', test_data["workflow_script"], '--image', test_data["metadata_vis_only"][image_name]['path'],
+                '--outdir', "img_outdir", '--result', result_file, '--writeimg', '--other', 'on']
 
     if len(expected) != len(jobs[0]):
         assert False
@@ -851,18 +753,17 @@ def test_plantcv_parallel_job_builder_single_image():
         assert all([i == j] for i, j in zip(jobs[0], expected))
 
 
-def test_plantcv_parallel_job_builder_coprocess():
-    # Create cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_job_builder_coprocess")
-    os.mkdir(cache_dir)
+def test_plantcv_parallel_job_builder_coprocess(test_data, tmpdir):
+    # Create tmp directory
+    tmp_dir = tmpdir.mkdir("sub")
     # Create config instance
     config = plantcv.parallel.WorkflowConfig()
-    config.input_dir = os.path.join(PARALLEL_TEST_DATA, TEST_SNAPSHOT_DIR)
-    config.json = os.path.join(cache_dir, "output.json")
-    config.tmp_dir = cache_dir
+    config.input_dir = test_data["img_snapshotdir"]
+    config.json = "output.json"
+    config.tmp_dir = str(tmp_dir)
     config.filename_metadata = ["imgtype", "camera", "frame", "zoom", "lifter", "gain", "exposure", "id"]
-    config.workflow = TEST_PIPELINE
-    config.img_outdir = cache_dir
+    config.workflow = test_data["workflow_script"]
+    config.img_outdir = "img_outdir"
     config.metadata_filters = {"imgtype": "VIS", "camera": "SV"}
     config.start_date = "2014-10-21 00:00:00.0"
     config.end_date = "2014-10-23 00:00:00.0"
@@ -872,17 +773,17 @@ def test_plantcv_parallel_job_builder_coprocess():
     config.writeimg = True
     config.coprocess = "NIR"
 
-    jobs = plantcv.parallel.job_builder(meta=METADATA_COPROCESS, config=config)
+    jobs = plantcv.parallel.job_builder(meta=test_data["metadata_coprocess"], config=config)
 
-    img_names = list(METADATA_COPROCESS.keys())
+    img_names = list(test_data["metadata_coprocess"].keys())
     vis_name = img_names[0]
-    vis_path = METADATA_COPROCESS[vis_name]['path']
-    result_file = os.path.join(cache_dir, vis_name + '.txt')
+    vis_path = test_data["metadata_coprocess"][vis_name]['path']
+    result_file = os.path.join("tmp_dir", vis_name + '.txt')
     nir_name = img_names[1]
-    coresult_file = os.path.join(cache_dir, nir_name + '.txt')
+    coresult_file = os.path.join("tmp_dir", nir_name + '.txt')
 
-    expected = ['python', TEST_PIPELINE, '--image', vis_path, '--outdir', cache_dir, '--result', result_file,
-                '--coresult', coresult_file, '--writeimg', '--other', 'on']
+    expected = ['python', test_data["workflow_script"], '--image', vis_path, '--outdir', "img_outdir", '--result',
+                result_file, '--coresult', coresult_file, '--writeimg', '--other', 'on']
 
     if len(expected) != len(jobs[0]):
         assert False
