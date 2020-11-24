@@ -213,36 +213,18 @@ def test_data():
         "workflow_script": os.path.join(datadir, "plantcv-script.py"),
         "metadata_vis_only": metadata_vis_only,
         "metadata_nir_only": metadata_nir_only,
-        "metadata_coprocess": metadata_coprocess
+        "metadata_coprocess": metadata_coprocess,
+        "appended_results_file": os.path.join(datadir, "appended_results.json"),
+        "new_results_file": os.path.join(datadir, "new_result.json"),
+        "valid_json_file": os.path.join(datadir, "valid.json"),
+        "parallel_results_dir": os.path.join(datadir, "results"),
+        "parallel_bad_results_dir": os.path.join(datadir, "bad_results")
     }
 
 
 PARALLEL_TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parallel_data")
 TEST_TMPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache")
 TEST_PIPELINE = os.path.join(PARALLEL_TEST_DATA, "plantcv-script.py")
-
-METADATA_VIS_ONLY = {
-    'VIS_SV_0_z1_h1_g0_e82_117770.jpg': {
-        'path': os.path.join(PARALLEL_TEST_DATA, 'snapshots', 'snapshot57383', 'VIS_SV_0_z1_h1_g0_e82_117770.jpg'),
-        'camera': 'SV',
-        'imgtype': 'VIS',
-        'zoom': 'z1',
-        'exposure': 'e82',
-        'gain': 'g0',
-        'frame': '0',
-        'lifter': 'h1',
-        'timestamp': '2014-10-22 17:49:35.187',
-        'id': '117770',
-        'plantbarcode': 'Ca031AA010564',
-        'treatment': 'none',
-        'cartag': '2143',
-        'measurementlabel': 'C002ch_092214_biomass',
-        'other': 'none'
-    }
-}
-
-# Set the temp directory for dask
-dask.config.set(temporary_directory=TEST_TMPDIR)
 
 
 # ##########################
@@ -791,17 +773,24 @@ def test_plantcv_parallel_job_builder_coprocess(test_data, tmpdir):
         assert all([i == j] for i, j in zip(jobs[0], expected))
 
 
-def test_plantcv_parallel_multiprocess_create_dask_cluster_local():
+def test_plantcv_parallel_multiprocess_create_dask_cluster_local(tmpdir):
+    # Create tmp directory
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the temp directory for dask
+    dask.config.set(temporary_directory=str(tmp_dir))
     client = plantcv.parallel.create_dask_cluster(cluster="LocalCluster", cluster_config={})
     status = client.status
     client.shutdown()
     assert status == "running"
 
 
-def test_plantcv_parallel_multiprocess_create_dask_cluster():
-    client = plantcv.parallel.create_dask_cluster(cluster="HTCondorCluster", cluster_config={"cores": 1,
-                                                                                             "memory": "1GB",
-                                                                                             "disk": "1GB"})
+def test_plantcv_parallel_multiprocess_create_dask_cluster(tmpdir):
+    # Create tmp directory
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the temp directory for dask
+    dask.config.set(temporary_directory=str(tmp_dir))
+    client = plantcv.parallel.create_dask_cluster(cluster="HTCondorCluster",
+                                                  cluster_config={"cores": 1, "memory": "1GB", "disk": "1GB"})
     status = client.status
     client.shutdown()
     assert status == "running"
@@ -812,68 +801,59 @@ def test_plantcv_parallel_multiprocess_create_dask_cluster_invalid_cluster():
         _ = plantcv.parallel.create_dask_cluster(cluster="Skynet", cluster_config={})
 
 
-def test_plantcv_parallel_multiprocess():
-    image_name = list(METADATA_VIS_ONLY.keys())[0]
-    image_path = os.path.join(METADATA_VIS_ONLY[image_name]['path'], image_name)
-    result_file = os.path.join(TEST_TMPDIR, image_name + '.txt')
-    jobs = [['python', TEST_PIPELINE, '--image', image_path, '--outdir', TEST_TMPDIR, '--result', result_file,
-             '--writeimg', '--other', 'on']]
+def test_plantcv_parallel_multiprocess(test_data, tmpdir):
+    # Create tmp directory
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the temp directory for dask
+    dask.config.set(temporary_directory=str(tmp_dir))
+    image_name = list(test_data["metadata_vis_only"].keys())[0]
+    image_path = os.path.join(test_data["metadata_vis_only"][image_name]['path'], image_name)
+    result_file = os.path.join(str(tmp_dir), image_name + '.txt')
+    jobs = [['python', test_data["workflow_script"], '--image', image_path, '--outdir', str(tmp_dir), '--result',
+             result_file, '--writeimg', '--other', 'on']]
     # Create a dask LocalCluster client
     client = Client(n_workers=1)
     plantcv.parallel.multiprocess(jobs, client=client)
     assert os.path.exists(result_file)
 
 
-def test_plantcv_parallel_process_results():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_process_results")
-    os.mkdir(cache_dir)
-    plantcv.parallel.process_results(job_dir=os.path.join(PARALLEL_TEST_DATA, "results"),
-                                     json_file=os.path.join(cache_dir, 'appended_results.json'))
-    plantcv.parallel.process_results(job_dir=os.path.join(PARALLEL_TEST_DATA, "results"),
-                                     json_file=os.path.join(cache_dir, 'appended_results.json'))
+def test_plantcv_parallel_process_results(test_data, tmpdir):
+    # Create a test tmp directory and results file
+    result_file = tmpdir.mkdir("sub").join("appended_results.json")
+    plantcv.parallel.process_results(job_dir=test_data["parallel_results_dir"], json_file=str(result_file))
+    plantcv.parallel.process_results(job_dir=test_data["parallel_results_dir"], json_file=str(result_file))
     # Assert that the output JSON file matches the expected output JSON file
-    result_file = open(os.path.join(cache_dir, "appended_results.json"), "r")
     results = json.load(result_file)
-    result_file.close()
-    expected_file = open(os.path.join(PARALLEL_TEST_DATA, "appended_results.json"))
-    expected = json.load(expected_file)
-    expected_file.close()
+    with open(test_data["appended_results_file"], "r") as fp:
+        expected = json.load(fp)
     assert results == expected
 
 
-def test_plantcv_parallel_process_results_new_output():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_process_results_new_output")
-    os.mkdir(cache_dir)
-    plantcv.parallel.process_results(job_dir=os.path.join(PARALLEL_TEST_DATA, "results"),
-                                     json_file=os.path.join(cache_dir, 'new_result.json'))
+def test_plantcv_parallel_process_results_new_output(test_data, tmpdir):
+    # Create a test tmp directory and results file
+    result_file = tmpdir.mkdir("sub").join("new_result.json")
+    plantcv.parallel.process_results(job_dir=test_data["parallel_results_dir"], json_file=str(result_file))
     # Assert output matches expected values
-    result_file = open(os.path.join(cache_dir, "new_result.json"), "r")
     results = json.load(result_file)
-    result_file.close()
-    expected_file = open(os.path.join(PARALLEL_TEST_DATA, "new_result.json"))
-    expected = json.load(expected_file)
-    expected_file.close()
+    with open(test_data["new_results_file"], "r") as fp:
+        expected = json.load(fp)
     assert results == expected
 
 
-def test_plantcv_parallel_process_results_valid_json():
+def test_plantcv_parallel_process_results_valid_json(test_data):
     # Test when the file is a valid json file but doesn't contain expected keys
     with pytest.raises(RuntimeError):
-        plantcv.parallel.process_results(job_dir=os.path.join(PARALLEL_TEST_DATA, "results"),
-                                         json_file=os.path.join(PARALLEL_TEST_DATA, "valid.json"))
+        plantcv.parallel.process_results(job_dir=test_data["parallel_results_dir"],
+                                         json_file=test_data["valid_json_file"])
 
 
-def test_plantcv_parallel_process_results_invalid_json():
-    # Create a test tmp directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_parallel_process_results_invalid_json")
-    os.mkdir(cache_dir)
+def test_plantcv_parallel_process_results_invalid_json(tmpdir):
+    # Create a test tmp directory and results file
+    result_file = tmpdir.mkdir("bad_results").join("invalid.txt")
+    result_file.write("Invalid")
     # Move the test data to the tmp directory
-    shutil.copytree(os.path.join(PARALLEL_TEST_DATA, "bad_results"), os.path.join(cache_dir, "bad_results"))
     with pytest.raises(RuntimeError):
-        plantcv.parallel.process_results(job_dir=os.path.join(cache_dir, "bad_results"),
-                                         json_file=os.path.join(cache_dir, "bad_results", "invalid.txt"))
+        plantcv.parallel.process_results(job_dir=os.path.split(str(result_file))[0], json_file=str(result_file))
 
 
 # ####################################################################################################################
