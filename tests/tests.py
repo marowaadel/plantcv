@@ -1163,55 +1163,51 @@ def test_plantcv_analyze_bound_vertical_outlier_x(test_data, pos, expected):
     assert result == expected
 
 
-def test_plantcv_analyze_color():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.analyze_color
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_analyze_color(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_color")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    # Test with debug = "print"
-    pcv.params.debug = "print"
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type="all")
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type=None)
-
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type=None)
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='lab')
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='hsv')
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type=None)
-
-    # Test with debug = None
-    pcv.params.debug = None
-    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='rgb')
-    pcv.print_results(os.path.join(cache_dir, "results.txt"))
-    assert pcv.outputs.observations['hue_median']['value'] == 84.0
+    result = pcv.outputs.observations['hue_median']['value']
     pcv.outputs.clear()
+    assert result == 84.0
 
 
-def test_plantcv_analyze_color_incorrect_image():
-    img_binary = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
+@pytest.mark.parametrize("hist", ["lab", "hsv", "rgb"])
+def test_plantcv_analyze_color_hist_plots(test_data, hist):
+    pcv.params.debug = "plot"
+    # Read in test data
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type=hist)
+    result = pcv.outputs.observations['hue_median']['value']
+    print(pcv.outputs.observations)
+    pcv.outputs.clear()
+    assert result == 84.0
+
+
+def test_plantcv_analyze_color_incorrect_image(test_data):
+    img_binary = cv2.imread(test_data["input_binary_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     with pytest.raises(RuntimeError):
         _ = pcv.analyze_color(rgb_img=img_binary, mask=mask, hist_plot_type=None)
 
 
-def test_plantcv_analyze_color_bad_hist_type():
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
+def test_plantcv_analyze_color_bad_hist_type(test_data):
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     pcv.params.debug = "plot"
     with pytest.raises(RuntimeError):
         _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='bgr')
-
-
-def test_plantcv_analyze_color_incorrect_hist_plot_type():
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    with pytest.raises(RuntimeError):
-        pcv.params.debug = "plot"
-        _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type="bgr")
 
 
 def test_plantcv_analyze_nir():
