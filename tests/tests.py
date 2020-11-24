@@ -212,6 +212,12 @@ def test_data():
     # Read contours from saved NumPy array
     setaria_small_mask_contours_npz = np.load(os.path.join(datadir, "setaria_composed_contours.npz"), encoding="latin1")
     setaria_small_mask_contours = setaria_small_mask_contours_npz['arr_0']
+    input_contours_npz = np.load(os.path.join(datadir, "input_contours.npz"), encoding="latin1")
+    input_object_contours = input_contours_npz['arr_0']
+    setaria_small_plant_composed_contours_npz = np.load(os.path.join(datadir,
+                                                                     "setaria_small_plant_composed_contours.npz"),
+                                                        encoding="latin1")
+    setaria_small_plant_composed_contours = setaria_small_plant_composed_contours_npz["arr_0"]
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
@@ -234,7 +240,14 @@ def test_data():
                                            [[224, 269]], [[246, 271]], [[260, 277]], [[141, 248]], [[183, 194]],
                                            [[188, 237]], [[173, 240]], [[186, 260]], [[147, 244]], [[163, 246]],
                                            [[173, 268]], [[170, 272]], [[151, 320]], [[195, 289]], [[228, 272]],
-                                           [[210, 272]], [[209, 247]], [[210, 232]]])
+                                           [[210, 272]], [[209, 247]], [[210, 232]]]),
+        "input_color_img": os.path.join(datadir, "input_color_img.jpg"),
+        "input_binary_img": os.path.join(datadir, "input_binary_img.png"),
+        "input_object_contours": input_object_contours,
+        "input_gray_img": os.path.join(datadir, "input_gray_img.jpg"),
+        "setaria_small_plant_vis": os.path.join(datadir, "setaria_small_plant_vis.png"),
+        "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
+        "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours
     }
 
 
@@ -1040,66 +1053,67 @@ def test_plantcv_acute_vertex_bad_obj(test_data):
     assert all([i == j] for i, j in zip(result, [0, ("NA", "NA")]))
 
 
-def test_plantcv_analyze_bound_horizontal():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.analyze_bound_horizontal
+# ##################################################################################################################
+@pytest.mark.parametrize("debug,pos", [("print", 300), ("print", 100), ("plot", 1756), (None, 1756)])
+def test_plantcv_analyze_bound_horizontal(test_data, tmpdir, debug, pos):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_bound_horizontal")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    img_above_bound_only = cv2.imread(os.path.join(TEST_DATA, TEST_MASK_SMALL_PLANT))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
-    object_contours = contours_npz['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=300)
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=100)
-    _ = pcv.analyze_bound_horizontal(img=img_above_bound_only, obj=object_contours, mask=mask, line_position=1756)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=1756)
-    # Test with debug = None
-    pcv.params.debug = None
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=1756)
-    # Copy a test file to the cache directory
-    shutil.copyfile(os.path.join(TEST_DATA, "data_results.txt"), os.path.join(cache_dir, "data_results.txt"))
-    pcv.print_results(os.path.join(cache_dir, "data_results.txt"))
-    assert len(pcv.outputs.observations) == 7
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    object_contours = test_data["input_object_contours"]
+    # Run PlantCV function
+    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=pos)
+    results = pcv.outputs.observations
     pcv.outputs.clear()
+    assert len(results) == 7
 
 
-def test_plantcv_analyze_bound_horizontal_grayscale_image():
+def test_plantcv_analyze_bound_horizontal_small_image(test_data, tmpdir):
+    # Test cache directory
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = "print"
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_GRAY), -1)
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
-    object_contours = contours_npz['arr_0']
+    img = cv2.imread(test_data["setaria_small_plant_mask"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    object_contours = test_data["input_object_contours"]
+    # Run PlantCV function
+    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=1756)
+    results = pcv.outputs.observations
+    pcv.outputs.clear()
+    assert len(results) == 7
+
+
+def test_plantcv_analyze_bound_horizontal_grayscale_image(test_data):
+    # Read in test data
+    img = cv2.imread(test_data["input_gray_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    object_contours = test_data["input_object_contours"]
     # Test with a grayscale reference image and debug="plot"
     pcv.params.debug = "plot"
     boundary_img1 = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=1756)
-    assert len(np.shape(boundary_img1)) == 3
+    assert len(boundary_img1.shape) == 3
 
 
-def test_plantcv_analyze_bound_horizontal_neg_y():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_bound_horizontal")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+@pytest.mark.parametrize("pos,expected", [(-1000, 0), (0, 0), (2056, 713)])
+def test_plantcv_analyze_bound_horizontal_neg_y(test_data, pos, expected):
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
-    object_contours = contours_npz['arr_0']
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    object_contours = test_data["input_object_contours"]
     # Test with debug=None, line position that will trigger -y
     pcv.params.debug = "plot"
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=-1000)
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=0)
-    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=2056)
-    shutil.copyfile(os.path.join(TEST_DATA, "data_results.txt"), os.path.join(cache_dir, "data_results.txt"))
-    pcv.print_results(os.path.join(cache_dir, "data_results.txt"))
-    assert pcv.outputs.observations['height_above_reference']['value'] == 713
+    _ = pcv.analyze_bound_horizontal(img=img, obj=object_contours, mask=mask, line_position=pos)
+    result = pcv.outputs.observations['height_above_reference']['value']
     pcv.outputs.clear()
+    assert result == expected
 
 
 def test_plantcv_analyze_bound_vertical():
