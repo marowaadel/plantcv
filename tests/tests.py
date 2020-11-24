@@ -227,8 +227,14 @@ def test_data():
         "valid_json_file": os.path.join(datadir, "valid.json"),
         "parallel_results_dir": os.path.join(datadir, "results"),
         "parallel_bad_results_dir": os.path.join(datadir, "bad_results"),
+        "setaria_small_vis": os.path.join(datadir, "setaria_small_vis.png"),
         "setaria_small_mask": os.path.join(datadir, "setaria_small_mask.png"),
-        "setaria_small_mask_contours": setaria_small_mask_contours
+        "setaria_small_mask_contours": setaria_small_mask_contours,
+        "acute_vertex_result": np.asarray([[[119, 285]], [[151, 280]], [[168, 267]], [[168, 262]], [[171, 261]],
+                                           [[224, 269]], [[246, 271]], [[260, 277]], [[141, 248]], [[183, 194]],
+                                           [[188, 237]], [[173, 240]], [[186, 260]], [[147, 244]], [[163, 246]],
+                                           [[173, 268]], [[170, 272]], [[151, 320]], [[195, 289]], [[228, 272]],
+                                           [[210, 272]], [[209, 247]], [[210, 232]]])
     }
 
 
@@ -1002,37 +1008,36 @@ def test_plantcv_acute_small_contours(test_data, obj, win, thresh):
 # ##################################################################################################################
 # Tests for plantcv.plantcv.acute_vertex
 # ##################################################################################################################
-def test_plantcv_acute_vertex():
+@pytest.mark.parametrize("debug", ["print", "plot", None])
+def test_plantcv_acute_vertex(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_acute_vertex")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_VIS_SMALL))
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_VIS_COMP_CONTOUR), encoding="latin1")
-    obj_contour = contours_npz['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.acute_vertex(obj=obj_contour, win=5, thresh=15, sep=5, img=img)
-    _ = pcv.acute_vertex(obj=[], win=5, thresh=15, sep=5, img=img)
-    _ = pcv.acute_vertex(obj=[], win=.01, thresh=.01, sep=1, img=img)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.acute_vertex(obj=obj_contour, win=5, thresh=15, sep=5, img=img)
-    # Test with debug = None
-    pcv.params.debug = None
+    img = cv2.imread(test_data["setaria_small_vis"])
+    obj_contour = test_data["setaria_small_mask_contours"]
     acute = pcv.acute_vertex(obj=obj_contour, win=5, thresh=15, sep=5, img=img)
-    assert all([i == j] for i, j in zip(np.shape(acute), np.shape(TEST_ACUTE_RESULT)))
     pcv.outputs.clear()
+    assert all([i == j] for i, j in zip(np.shape(acute), np.shape(test_data["acute_vertex_result"])))
 
 
-def test_plantcv_acute_vertex_bad_obj():
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_VIS_SMALL))
+@pytest.mark.parametrize("obj,win,thresh,sep", [([], 5, 15, 5), ([], 0.01, 0.01, 1)])
+def test_plantcv_acute_vertex_small_contours(test_data, obj, win, thresh, sep):
+    # Read in test data
+    img = cv2.imread(test_data["setaria_small_vis"])
+    acute = pcv.acute_vertex(obj=obj, win=win, thresh=thresh, sep=sep, img=img)
+    pcv.outputs.clear()
+    assert all([i == j] for i, j in zip(np.shape(acute), np.shape(test_data["acute_vertex_result"])))
+
+
+def test_plantcv_acute_vertex_bad_obj(test_data):
+    img = cv2.imread(test_data["setaria_small_vis"])
     obj_contour = np.array([])
-    pcv.params.debug = None
     result = pcv.acute_vertex(obj=obj_contour, win=5, thresh=15, sep=5, img=img)
-    assert all([i == j] for i, j in zip(result, [0, ("NA", "NA")]))
     pcv.outputs.clear()
+    assert all([i == j] for i, j in zip(result, [0, ("NA", "NA")]))
 
 
 def test_plantcv_analyze_bound_horizontal():
