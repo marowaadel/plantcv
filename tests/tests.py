@@ -1210,26 +1210,32 @@ def test_plantcv_analyze_color_bad_hist_type(test_data):
         _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='bgr')
 
 
-def test_plantcv_analyze_nir():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.analyze_nir_intensity
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_analyze_nir(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_nir")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR), 0)
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.analyze_nir_intensity(gray_img=np.uint16(img), mask=mask, bins=256, histplot=True)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.analyze_nir_intensity(gray_img=img, mask=mask, bins=256, histplot=False)
-    # Test with debug = "plot"
+    img = cv2.imread(test_data["input_gray_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     _ = pcv.analyze_nir_intensity(gray_img=img, mask=mask, bins=256, histplot=True)
+    result = len(pcv.outputs.observations['nir_frequencies']['value'])
+    pcv.outputs.clear()
+    assert result == 256
+
+
+def test_plantcv_analyze_nir_16bit(test_data):
     # Test with debug = None
     pcv.params.debug = None
-    _ = pcv.analyze_nir_intensity(gray_img=img, mask=mask, bins=256, histplot=True)
-    pcv.print_results(os.path.join(cache_dir, "results.txt"))
+    # Read in test data
+    img = cv2.imread(test_data["input_gray_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    _ = pcv.analyze_nir_intensity(gray_img=np.uint16(img), mask=mask, bins=256, histplot=False)
     result = len(pcv.outputs.observations['nir_frequencies']['value'])
     pcv.outputs.clear()
     assert result == 256
