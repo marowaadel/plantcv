@@ -19,6 +19,11 @@ import matplotlib
 import dask
 from dask.distributed import Client
 
+# Disable plotting
+matplotlib.use('Template')
+
+TEST_TMPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache")
+
 
 @pytest.fixture(scope="session")
 def test_data():
@@ -204,6 +209,9 @@ def test_data():
             'other': 'none'
         }
     }
+    # Read contours from saved NumPy array
+    setaria_small_mask_contours_npz = np.load(os.path.join(datadir, "setaria_composed_contours.npz"), encoding="latin1")
+    setaria_small_mask_contours = setaria_small_mask_contours_npz['arr_0']
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
@@ -218,13 +226,10 @@ def test_data():
         "new_results_file": os.path.join(datadir, "new_result.json"),
         "valid_json_file": os.path.join(datadir, "valid.json"),
         "parallel_results_dir": os.path.join(datadir, "results"),
-        "parallel_bad_results_dir": os.path.join(datadir, "bad_results")
+        "parallel_bad_results_dir": os.path.join(datadir, "bad_results"),
+        "setaria_small_mask": os.path.join(datadir, "setaria_small_mask.png"),
+        "setaria_small_mask_contours": setaria_small_mask_contours
     }
-
-
-PARALLEL_TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "parallel_data")
-TEST_TMPDIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".cache")
-TEST_PIPELINE = os.path.join(PARALLEL_TEST_DATA, "plantcv-script.py")
 
 
 # ##########################
@@ -858,7 +863,6 @@ def test_plantcv_parallel_process_results_invalid_json(tmpdir):
 
 # ####################################################################################################################
 # ########################################### PLANTCV MAIN PACKAGE ###################################################
-matplotlib.use('Template')
 
 TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 HYPERSPECTRAL_TEST_DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hyperspectral_data")
@@ -965,30 +969,39 @@ TEST_INPUT_THERMAL_CSV = "FLIR2600.csv"
 PIXEL_VALUES = "pixel_inspector_rgb_values.txt"
 
 
-# ##########################
-# Tests for the main package
-# ##########################
-
-def test_plantcv_acute():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.acute
+# ##################################################################################################################
+# Parameterize the test with win=0 and win=5
+@pytest.mark.parametrize("win", [0, 5])
+def test_plantcv_acute(test_data, win):
     # Read in test data
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_MASK_SMALL), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_VIS_COMP_CONTOUR), encoding="latin1")
-    obj_contour = contours_npz['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.acute(obj=obj_contour, win=5, thresh=15, mask=mask)
-    _ = pcv.acute(obj=obj_contour, win=0, thresh=15, mask=mask)
-    _ = pcv.acute(obj=np.array(([[213, 190]], [[83, 61]], [[149, 246]])), win=84, thresh=192, mask=mask)
-    _ = pcv.acute(obj=np.array(([[3, 29]], [[31, 102]], [[161, 63]])), win=148, thresh=56, mask=mask)
-    _ = pcv.acute(obj=np.array(([[103, 154]], [[27, 227]], [[152, 83]])), win=35, thresh=0, mask=mask)
-    # Test with debug = None
-    pcv.params.debug = None
-    _ = pcv.acute(obj=np.array(([[103, 154]], [[27, 227]], [[152, 83]])), win=35, thresh=0, mask=mask)
-    _ = pcv.acute(obj=obj_contour, win=0, thresh=15, mask=mask)
-    homology_pts = pcv.acute(obj=obj_contour, win=5, thresh=15, mask=mask)
+    mask = cv2.imread(test_data["setaria_small_mask"], -1)
+    obj_contour = test_data['setaria_small_mask_contours']
+    homology_pts = pcv.acute(obj=obj_contour, win=win, thresh=15, mask=mask)
     assert all([i == j] for i, j in zip(np.shape(homology_pts), (29, 1, 2)))
 
 
+# Parameterize the test with various small contours, window sizes and thresholds
+acute_paraemters = [
+    (np.array(([[213, 190]], [[83, 61]], [[149, 246]])), 84, 192),
+    (np.array(([[3, 29]], [[31, 102]], [[161, 63]])), 148, 56),
+    (np.array(([[103, 154]], [[27, 227]], [[152, 83]])), 35, 0),
+    (np.array(([[103, 154]], [[27, 227]], [[152, 83]])), 35, 0)
+]
+
+
+@pytest.mark.parametrize("obj,win,thresh", acute_paraemters)
+def test_plantcv_acute_small_contours(test_data, obj, win, thresh):
+    # Read in test data
+    mask = cv2.imread(test_data["setaria_small_mask"], -1)
+    homology_pts = pcv.acute(obj=obj, win=win, thresh=thresh, mask=mask)
+    assert all([i == j] for i, j in zip(np.shape(homology_pts), (29, 1, 2)))
+
+
+# ##################################################################################################################
+# Tests for plantcv.plantcv.acute_vertex
+# ##################################################################################################################
 def test_plantcv_acute_vertex():
     # Test cache directory
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_acute_vertex")
