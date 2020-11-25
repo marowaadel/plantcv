@@ -214,6 +214,7 @@ def test_data():
     setaria_small_mask_contours = setaria_small_mask_contours_npz['arr_0']
     input_contours_npz = np.load(os.path.join(datadir, "input_contours.npz"), encoding="latin1")
     input_object_contours = input_contours_npz['arr_0']
+    input_multi_roi = np.load(os.path.join(datadir, "roi_objects.npz"), encoding="latin1")
     setaria_small_plant_composed_contours_npz = np.load(os.path.join(datadir,
                                                                      "setaria_small_plant_composed_contours.npz"),
                                                         encoding="latin1")
@@ -247,6 +248,8 @@ def test_data():
         "input_binary_img": os.path.join(datadir, "input_binary_img.png"),
         "input_object_contours": input_object_contours,
         "input_gray_img": os.path.join(datadir, "input_gray_img.jpg"),
+        "input_multi_img": os.path.join(datadir, "multi_ori_image.jpg"),
+        "input_multi_rois": input_multi_roi,
         "setaria_small_plant_vis": os.path.join(datadir, "setaria_small_plant_vis.png"),
         "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
         "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours,
@@ -1428,63 +1431,49 @@ def test_plantcv_apply_mask_bad_input(test_data):
         _ = pcv.apply_mask(img=img, mask=mask, mask_color="wite")
 
 
-def test_plantcv_auto_crop():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.auto_crop
+# ##################################################################################################################
+@pytest.mark.parametrize("debug,mode,bkgd", [("print", -1, "black"), ("plot", 0, "white")])
+def test_plantcv_auto_crop(test_data, tmpdir, debug, mode, bkgd):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_auto_crop")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
+    img = cv2.imread(test_data["input_multi_img"], mode)
+    contours = test_data["input_multi_rois"]
     roi_contours = [contours[arr_n] for arr_n in contours]
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.auto_crop(img=img1, obj=roi_contours[1], padding_x=(20, 10), padding_y=(20, 10), color='black')
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.auto_crop(img=img1, obj=roi_contours[1], color='image')
-    _ = pcv.auto_crop(img=img1, obj=roi_contours[1], padding_x=2000, padding_y=2000, color='image')
+    cropped = pcv.auto_crop(img=img, obj=roi_contours[1], color=bkgd)
+    assert cropped.shape[0:2] == (21, 26)
+
+
+@pytest.mark.parametrize("pad_x,pad_y,expected", [(0, 0, (21, 26)), (2000, 2000, (21, 26))])
+def test_plantcv_auto_crop_background_img(test_data, pad_x, pad_y, expected):
     # Test with debug = None
     pcv.params.debug = None
-    cropped = pcv.auto_crop(img=img1, obj=roi_contours[1], padding_x=20, padding_y=20, color='black')
-    x, y, z = np.shape(img1)
-    x1, y1, z1 = np.shape(cropped)
-    assert x > x1
-
-
-def test_plantcv_auto_crop_grayscale_input():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_auto_crop_grayscale_input")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
     # Read in test data
-    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
-    contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
+    img = cv2.imread(test_data["input_multi_img"])
+    contours = test_data["input_multi_rois"]
     roi_contours = [contours[arr_n] for arr_n in contours]
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    cropped = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x=20, padding_y=20, color='white')
-    x, y = np.shape(gray_img)
-    x1, y1 = np.shape(cropped)
-    assert x > x1
+    cropped = pcv.auto_crop(img=img, obj=roi_contours[1], padding_x=pad_x, padding_y=pad_y, color='image')
+    assert cropped.shape[0:2] == expected
 
 
-def test_plantcv_auto_crop_bad_color_input():
+def test_plantcv_auto_crop_bad_color_input(test_data):
     # Read in test data
-    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
-    contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
+    gray_img = cv2.imread(test_data["input_multi_img"], 0)
+    contours = test_data["input_multi_rois"]
     roi_contours = [contours[arr_n] for arr_n in contours]
     with pytest.raises(RuntimeError):
         _ = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x=20, padding_y=20, color='wite')
 
 
-def test_plantcv_auto_crop_bad_padding_input():
+def test_plantcv_auto_crop_bad_padding_input(test_data):
     # Read in test data
-    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
-    contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
+    gray_img = cv2.imread(test_data["input_multi_img"], 0)
+    contours = test_data["input_multi_rois"]
     roi_contours = [contours[arr_n] for arr_n in contours]
     with pytest.raises(RuntimeError):
         _ = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x="one", padding_y=20, color='white')
