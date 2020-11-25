@@ -1204,7 +1204,7 @@ def test_plantcv_analyze_color_incorrect_image(test_data):
 
 def test_plantcv_analyze_color_bad_hist_type(test_data):
     img = cv2.imread(test_data["input_color_img"])
-    mask = cv2.imread(test_data["input_binary_img"], -1)
+    mask = cv2.imread(test_data["input_color_img"], -1)
     pcv.params.debug = "plot"
     with pytest.raises(RuntimeError):
         _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='bgr')
@@ -1241,53 +1241,42 @@ def test_plantcv_analyze_nir_16bit(test_data):
     assert result == 256
 
 
-def test_plantcv_analyze_object():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.analyze_object
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_analyze_object(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
-    obj_contour = contours_npz['arr_0']
-    # max_obj = max(obj_contour, key=len)
-    # Test with debug = "print"
-    pcv.params.debug = "print"
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    obj_contour = test_data["input_object_contours"]
     _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    # Test with debug = None
-    pcv.params.debug = None
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    pcv.print_results(os.path.join(cache_dir, "results.txt"))
+    result = pcv.outputs.observations["area"]["value"]
     pcv.outputs.clear()
-    assert len(obj_images) != 0
+    assert result == 63632.0
 
 
-def test_plantcv_analyze_object_grayscale_input():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object_grayscale_input")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
-    # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR), 0)
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_INPUT_CONTOURS), encoding="latin1")
-    obj_contour = contours_npz['arr_0']
-    # max_obj = max(obj_contour, key=len)
+def test_plantcv_analyze_object_grayscale_input(test_data):
     # Test with debug = "plot"
     pcv.params.debug = "plot"
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    assert len(obj_images) != 1
+    # Read in test data
+    img = cv2.imread(test_data["input_gray_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
+    obj_contour = test_data["input_object_contours"]
+    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
+    result = pcv.outputs.observations["area"]["value"]
+    pcv.outputs.clear()
+    assert result == 63632.0
 
 
 def test_plantcv_analyze_object_zero_slope():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object_zero_slope")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    # Test with debug = None
+    pcv.params.debug = None
     # Create a test image
     img = np.zeros((50, 50, 3), dtype=np.uint8)
     img[10:11, 10:40, 0] = 255
@@ -1301,17 +1290,15 @@ def test_plantcv_analyze_object_zero_slope():
                             [[26, 10]], [[25, 10]], [[24, 10]], [[23, 10]], [[22, 10]], [[21, 10]], [[20, 10]],
                             [[19, 10]], [[18, 10]], [[17, 10]], [[16, 10]], [[15, 10]], [[14, 10]], [[13, 10]],
                             [[12, 10]], [[11, 10]]], dtype=np.int32)
-    # Test with debug = None
-    pcv.params.debug = None
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    assert len(obj_images) != 0
+
+    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
+    result = pcv.outputs.observations["ellipse_angle"]["value"]
+    assert result == 0
 
 
 def test_plantcv_analyze_object_longest_axis_2d():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object_longest_axis_2d")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    # Test with debug = None
+    pcv.params.debug = None
     # Create a test image
     img = np.zeros((50, 50, 3), dtype=np.uint8)
     img[0:5, 45:49, 0] = 255
@@ -1321,17 +1308,15 @@ def test_plantcv_analyze_object_longest_axis_2d():
                             [[48, 3]], [[48, 2]], [[48, 1]], [[47, 1]], [[46, 1]], [[1, 1]], [[1, 2]],
                             [[1, 3]], [[1, 4]], [[2, 4]], [[3, 4]], [[4, 4]], [[4, 3]], [[4, 2]],
                             [[4, 1]], [[3, 1]], [[2, 1]]], dtype=np.int32)
-    # Test with debug = None
-    pcv.params.debug = None
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    assert len(obj_images) != 0
+
+    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
+    result = pcv.outputs.observations["longest_path"]["value"]
+    assert result == 186
 
 
 def test_plantcv_analyze_object_longest_axis_2e():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object_longest_axis_2e")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    # Test with debug = None
+    pcv.params.debug = None
     # Create a test image
     img = np.zeros((50, 50, 3), dtype=np.uint8)
     img[10:15, 10:40, 0] = 255
@@ -1346,24 +1331,23 @@ def test_plantcv_analyze_object_longest_axis_2e():
                             [[27, 10]], [[26, 10]], [[25, 10]], [[24, 10]], [[23, 10]], [[22, 10]], [[21, 10]],
                             [[20, 10]], [[19, 10]], [[18, 10]], [[17, 10]], [[16, 10]], [[15, 10]], [[14, 10]],
                             [[13, 10]], [[12, 10]], [[11, 10]]], dtype=np.int32)
+
+    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
+    result = pcv.outputs.observations["longest_path"]["value"]
+    assert result == 141
+
+
+def test_plantcv_analyze_object_small_contour(test_data):
     # Test with debug = None
     pcv.params.debug = None
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    assert len(obj_images) != 0
-
-
-def test_plantcv_analyze_object_small_contour():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_object_small_contour")
-    os.mkdir(cache_dir)
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     obj_contour = [np.array([[[0, 0]], [[0, 50]], [[50, 50]], [[50, 0]]], dtype=np.int32)]
-    # Test with debug = None
-    pcv.params.debug = None
-    obj_images = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
-    assert obj_images is None
+
+    _ = pcv.analyze_object(img=img, obj=obj_contour, mask=mask)
+    result = pcv.outputs.observations["area"]["value"]
+    assert result == 150
 
 
 def test_plantcv_analyze_thermal_values():
