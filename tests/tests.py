@@ -251,7 +251,10 @@ def test_data():
         "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
         "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours,
         "thermal_img_mask": os.path.join(datadir, "thermal_img_mask.png"),
-        "thermal_img_data": thermal_img_data
+        "thermal_img_data": thermal_img_data,
+        "hyperspectral_data": os.path.join(datadir, "darkReference"),
+        "hyperspectral_hdr": os.path.join(datadir, "darkReference.hdr"),
+        "hyperspectral_mask": os.path.join(datadir, "darkReference_mask.png")
     }
 
 
@@ -1372,70 +1375,54 @@ def test_plantcv_analyze_thermal_values(test_data, tmpdir, debug):
     assert result == 33.20922
 
 
-def test_plantcv_apply_mask_white():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.apply_mask
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_apply_mask_white(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_apply_mask_white")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.apply_mask(img=img, mask=mask, mask_color="white")
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.apply_mask(img=img, mask=mask, mask_color="white")
-    # Test with debug = None
-    pcv.params.debug = None
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     masked_img = pcv.apply_mask(img=img, mask=mask, mask_color="white")
-    assert all([i == j] for i, j in zip(np.shape(masked_img), TEST_COLOR_DIM))
+    bkgd = masked_img[np.all(masked_img == (255, 255, 255), axis=-1)]
+    assert len(bkgd) == 4981792
 
 
-def test_plantcv_apply_mask_black():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_apply_mask_black")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
-    # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.apply_mask(img=img, mask=mask, mask_color="black")
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.apply_mask(img=img, mask=mask, mask_color="black")
+def test_plantcv_apply_mask_black(test_data):
     # Test with debug = None
     pcv.params.debug = None
+    # Read in test data
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     masked_img = pcv.apply_mask(img=img, mask=mask, mask_color="black")
-    assert all([i == j] for i, j in zip(np.shape(masked_img), TEST_COLOR_DIM))
+    bkgd = masked_img[np.all(masked_img == (0, 0, 0), axis=-1)]
+    print(len(bkgd))
+    assert len(bkgd) == 4981792
 
 
-def test_plantcv_apply_mask_hyperspectral():
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_apply_mask_hyperspectral(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_apply_mask_hyperspectral")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    spectral_filename = os.path.join(HYPERSPECTRAL_TEST_DATA, HYPERSPECTRAL_DATA)
-    hyper_array = pcv.hyperspectral.read_data(filename=spectral_filename)
-
-    img = np.ones((2056, 2454))
-    img_stacked = cv2.merge((img, img, img, img))
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.apply_mask(img=img_stacked, mask=img, mask_color="black")
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    masked_array = pcv.apply_mask(img=hyper_array.array_data, mask=img, mask_color="black")
-    assert np.mean(masked_array) == 13.97111260224949
+    hsi = pcv.hyperspectral.read_data(filename=test_data["hyperspectral_data"])
+    mask = cv2.imread(test_data["hyperspectral_mask"], -1)
+    masked_array = pcv.apply_mask(img=hsi.array_data, mask=mask, mask_color="black")
+    assert np.sum(masked_array) == 10902195
 
 
-def test_plantcv_apply_mask_bad_input():
+def test_plantcv_apply_mask_bad_input(test_data):
     # Read in test data
-    img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR))
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
+    img = cv2.imread(test_data["input_color_img"])
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     with pytest.raises(RuntimeError):
         pcv.params.debug = "plot"
         _ = pcv.apply_mask(img=img, mask=mask, mask_color="wite")
