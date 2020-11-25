@@ -218,6 +218,8 @@ def test_data():
                                                                      "setaria_small_plant_composed_contours.npz"),
                                                         encoding="latin1")
     setaria_small_plant_composed_contours = setaria_small_plant_composed_contours_npz["arr_0"]
+    thermal_img_npz = np.load(os.path.join(datadir, "thermal_img.npz"), encoding="latin1")
+    thermal_img_data = thermal_img_npz["arr_0"]
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
@@ -247,7 +249,9 @@ def test_data():
         "input_gray_img": os.path.join(datadir, "input_gray_img.jpg"),
         "setaria_small_plant_vis": os.path.join(datadir, "setaria_small_plant_vis.png"),
         "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
-        "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours
+        "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours,
+        "thermal_img_mask": os.path.join(datadir, "thermal_img_mask.png"),
+        "thermal_img_data": thermal_img_data
     }
 
 
@@ -1350,23 +1354,22 @@ def test_plantcv_analyze_object_small_contour(test_data):
     assert result == 150
 
 
-def test_plantcv_analyze_thermal_values():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.analyze_thermal_values
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_analyze_thermal_values(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_analyze_thermal_values")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    # img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_COLOR), 0)
-    mask = cv2.imread(os.path.join(TEST_DATA, TEST_THERMAL_IMG_MASK), -1)
-    contours_npz = np.load(os.path.join(TEST_DATA, TEST_THERMAL_ARRAY), encoding="latin1")
-    img = contours_npz['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
+    mask = cv2.imread(test_data["thermal_img_mask"], -1)
+    img = test_data["thermal_img_data"]
     _ = pcv.analyze_thermal_values(thermal_array=img, mask=mask, histplot=True)
-    pcv.params.debug = "plot"
-    thermal_hist = pcv.analyze_thermal_values(thermal_array=img, mask=mask, histplot=True)
-    pcv.print_results(os.path.join(cache_dir, "results.txt"))
-    assert thermal_hist is not None and pcv.outputs.observations['median_temp']['value'] == 33.20922
+    result = pcv.outputs.observations['median_temp']['value']
+    assert result == 33.20922
 
 
 def test_plantcv_apply_mask_white():
