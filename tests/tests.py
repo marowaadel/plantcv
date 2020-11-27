@@ -1503,29 +1503,33 @@ def test_plantcv_canny_edge_detect_bad_input(test_data):
         _ = pcv.canny_edge_detect(img=img, mask=mask, mask_color="gray")
 
 
-def test_plantcv_closing():
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_closing")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+# ##################################################################################################################
+# Tests for plantcv.plantcv.closing
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_closing(test_data, tmpdir, debug):
+    # Test cache directory
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    gray_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2GRAY)
-    bin_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_BINARY), -1)
-    # Test with debug=None
-    pcv.params.debug = None
-    _ = pcv.closing(gray_img)
-    # Test with debug='plot'
-    pcv.params.debug = 'plot'
-    _ = pcv.closing(bin_img, np.ones((4, 4), np.uint8))
-    # Test with debug='print'
-    pcv.params.debug = 'print'
+    bin_img = cv2.imread(test_data["input_binary_img"], -1)
     filtered_img = pcv.closing(bin_img)
     assert np.sum(filtered_img) == 16261860
 
 
-def test_plantcv_closing_bad_input():
+def test_plantcv_closing_grayscale(test_data):
+    # Test with debug=None
+    pcv.params.debug = None
+    gray_img = cv2.imread(test_data["input_multi_img"], 0)
+    filtered_img = pcv.closing(gray_img)
+    assert np.sum(filtered_img) == 11556498
+
+
+def test_plantcv_closing_bad_input(test_data):
     # Read in test data
-    rgb_img = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
+    rgb_img = cv2.imread(test_data["input_multi_img"])
     with pytest.raises(RuntimeError):
         _ = pcv.closing(rgb_img)
 
