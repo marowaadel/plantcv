@@ -210,17 +210,13 @@ def test_data():
         }
     }
     # Read contours from saved NumPy array
-    setaria_small_mask_contours_npz = np.load(os.path.join(datadir, "setaria_composed_contours.npz"), encoding="latin1")
-    setaria_small_mask_contours = setaria_small_mask_contours_npz['arr_0']
-    input_contours_npz = np.load(os.path.join(datadir, "input_contours.npz"), encoding="latin1")
-    input_object_contours = input_contours_npz['arr_0']
+    setaria_small_mask_contours = np.load(os.path.join(datadir, "setaria_composed_contours.npz"), encoding="latin1")
+    input_contours = np.load(os.path.join(datadir, "input_contours.npz"), encoding="latin1")
     input_multi_roi = np.load(os.path.join(datadir, "roi_objects.npz"), encoding="latin1")
-    setaria_small_plant_composed_contours_npz = np.load(os.path.join(datadir,
-                                                                     "setaria_small_plant_composed_contours.npz"),
-                                                        encoding="latin1")
-    setaria_small_plant_composed_contours = setaria_small_plant_composed_contours_npz["arr_0"]
-    thermal_img_npz = np.load(os.path.join(datadir, "thermal_img.npz"), encoding="latin1")
-    thermal_img_data = thermal_img_npz["arr_0"]
+    input_multi_roi_str = np.load(os.path.join(datadir, "multi_hierarchy.npz"), encoding="latin1")
+    setaria_small_plant_composed_contours = np.load(os.path.join(datadir, "setaria_small_plant_composed_contours.npz"),
+                                                    encoding="latin1")
+    thermal_img = np.load(os.path.join(datadir, "thermal_img.npz"), encoding="latin1")
     return {
         "workflowconfig_template": workflowconfig_template,
         "workflowconfig_template_file": os.path.join(datadir, "workflow_config_template.json"),
@@ -238,7 +234,7 @@ def test_data():
         "parallel_bad_results_dir": os.path.join(datadir, "bad_results"),
         "setaria_small_vis": os.path.join(datadir, "setaria_small_vis.png"),
         "setaria_small_mask": os.path.join(datadir, "setaria_small_mask.png"),
-        "setaria_small_mask_contours": setaria_small_mask_contours,
+        "setaria_small_mask_contours": setaria_small_mask_contours['arr_0'],
         "acute_vertex_result": np.asarray([[[119, 285]], [[151, 280]], [[168, 267]], [[168, 262]], [[171, 261]],
                                            [[224, 269]], [[246, 271]], [[260, 277]], [[141, 248]], [[183, 194]],
                                            [[188, 237]], [[173, 240]], [[186, 260]], [[147, 244]], [[163, 246]],
@@ -246,15 +242,16 @@ def test_data():
                                            [[210, 272]], [[209, 247]], [[210, 232]]]),
         "input_color_img": os.path.join(datadir, "input_color_img.jpg"),
         "input_binary_img": os.path.join(datadir, "input_binary_img.png"),
-        "input_object_contours": input_object_contours,
+        "input_object_contours": input_contours['arr_0'],
         "input_gray_img": os.path.join(datadir, "input_gray_img.jpg"),
         "input_multi_img": os.path.join(datadir, "multi_ori_image.jpg"),
-        "input_multi_rois": input_multi_roi,
+        "input_multi_rois": [input_multi_roi[arr_n] for arr_n in input_multi_roi],
+        "input_multi_roi_str": input_multi_roi_str["arr_0"],
         "setaria_small_plant_vis": os.path.join(datadir, "setaria_small_plant_vis.png"),
         "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
-        "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours,
+        "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours["arr_0"],
         "thermal_img_mask": os.path.join(datadir, "thermal_img_mask.png"),
-        "thermal_img_data": thermal_img_data,
+        "thermal_img_data": thermal_img["arr_0"],
         "hyperspectral_data": os.path.join(datadir, "darkReference"),
         "hyperspectral_hdr": os.path.join(datadir, "darkReference.hdr"),
         "hyperspectral_mask": os.path.join(datadir, "darkReference_mask.png")
@@ -1455,8 +1452,7 @@ def test_plantcv_auto_crop_background_img(test_data, pad_x, pad_y, expected):
     pcv.params.debug = None
     # Read in test data
     img = cv2.imread(test_data["input_multi_img"])
-    contours = test_data["input_multi_rois"]
-    roi_contours = [contours[arr_n] for arr_n in contours]
+    roi_contours = test_data["input_multi_rois"]
     cropped = pcv.auto_crop(img=img, obj=roi_contours[1], padding_x=pad_x, padding_y=pad_y, color='image')
     assert cropped.shape[0:2] == expected
 
@@ -1464,8 +1460,7 @@ def test_plantcv_auto_crop_background_img(test_data, pad_x, pad_y, expected):
 def test_plantcv_auto_crop_bad_color_input(test_data):
     # Read in test data
     gray_img = cv2.imread(test_data["input_multi_img"], 0)
-    contours = test_data["input_multi_rois"]
-    roi_contours = [contours[arr_n] for arr_n in contours]
+    roi_contours = test_data["input_multi_rois"]
     with pytest.raises(RuntimeError):
         _ = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x=20, padding_y=20, color='wite')
 
@@ -1473,8 +1468,7 @@ def test_plantcv_auto_crop_bad_color_input(test_data):
 def test_plantcv_auto_crop_bad_padding_input(test_data):
     # Read in test data
     gray_img = cv2.imread(test_data["input_multi_img"], 0)
-    contours = test_data["input_multi_rois"]
-    roi_contours = [contours[arr_n] for arr_n in contours]
+    roi_contours = test_data["input_multi_rois"]
     with pytest.raises(RuntimeError):
         _ = pcv.auto_crop(img=gray_img, obj=roi_contours[1], padding_x="one", padding_y=20, color='white')
 
@@ -1534,57 +1528,35 @@ def test_plantcv_closing_bad_input(test_data):
         _ = pcv.closing(rgb_img)
 
 
-def test_plantcv_cluster_contours():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.cluster_contours
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_cluster_contours(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_cluster_contours")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    roi_objects = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
-    hierarchy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
-    objs = [roi_objects[arr_n] for arr_n in roi_objects]
-    obj_hierarchy = hierarchy['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy, nrow=4, ncol=6)
-    _ = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy, show_grid=True)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _ = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy, nrow=4, ncol=6)
-    # Test with debug = None
-    pcv.params.debug = None
-    clusters_i, contours, hierarchy = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy,
-                                                           nrow=4, ncol=6)
-    lenori = len(objs)
-    lenclust = len(clusters_i)
-    assert lenori > lenclust
+    img = cv2.imread(test_data["input_multi_img"])
+    roi_contours = test_data["input_multi_rois"]
+    roi_str = test_data["input_multi_roi_str"]
+    clusters_i, contours, hierarchy = pcv.cluster_contours(img=img, roi_objects=roi_contours,
+                                                           roi_obj_hierarchy=roi_str, nrow=4, ncol=6, show_grid=True)
+    assert len(clusters_i) == 18
 
 
-def test_plantcv_cluster_contours_grayscale_input():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_cluster_contours_grayscale_input")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
-    # Read in test data
-    img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), 0)
-    roi_objects = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_OBJECT), encoding="latin1")
-    hierachy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
-    objs = [roi_objects[arr_n] for arr_n in roi_objects]
-    obj_hierarchy = hierachy['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy, nrow=4, ncol=6)
+def test_plantcv_cluster_contours_grayscale_input(test_data):
     # Test with debug = "plot"
     pcv.params.debug = "plot"
-    _ = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy, nrow=4, ncol=6)
-    # Test with debug = None
-    pcv.params.debug = None
-    clusters_i, contours, hierachy = pcv.cluster_contours(img=img1, roi_objects=objs, roi_obj_hierarchy=obj_hierarchy,
-                                                          nrow=4, ncol=6)
-    lenori = len(objs)
-    lenclust = len(clusters_i)
-    assert lenori > lenclust
+    # Read in test data
+    gray_img = cv2.imread(test_data["input_multi_img"], 0)
+    roi_contours = test_data["input_multi_rois"]
+    roi_str = test_data["input_multi_roi_str"]
+    clusters_i, contours, hierarchy = pcv.cluster_contours(img=gray_img, roi_objects=roi_contours,
+                                                          roi_obj_hierarchy=roi_str)
+    assert len(clusters_i) == 1
 
 
 def test_plantcv_cluster_contours_splitimg():
