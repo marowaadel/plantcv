@@ -214,6 +214,7 @@ def test_data():
     input_contours = np.load(os.path.join(datadir, "input_contours.npz"), encoding="latin1")
     input_multi_roi = np.load(os.path.join(datadir, "roi_objects.npz"), encoding="latin1")
     input_multi_roi_str = np.load(os.path.join(datadir, "multi_hierarchy.npz"), encoding="latin1")
+    clustered_contours = np.load(os.path.join(datadir, "clusters_i.npz"), encoding="latin1")
     setaria_small_plant_composed_contours = np.load(os.path.join(datadir, "setaria_small_plant_composed_contours.npz"),
                                                     encoding="latin1")
     thermal_img = np.load(os.path.join(datadir, "thermal_img.npz"), encoding="latin1")
@@ -247,6 +248,9 @@ def test_data():
         "input_multi_img": os.path.join(datadir, "multi_ori_image.jpg"),
         "input_multi_rois": [input_multi_roi[arr_n] for arr_n in input_multi_roi],
         "input_multi_roi_str": input_multi_roi_str["arr_0"],
+        "clustered_contours": [clustered_contours[arr_n] for arr_n in clustered_contours],
+        "cluster_names": os.path.join(datadir, "cluster_names.txt"),
+        "cluster_names_too_many": os.path.join(datadir, "cluster_names_too_many.txt"),
         "setaria_small_plant_vis": os.path.join(datadir, "setaria_small_plant_vis.png"),
         "setaria_small_plant_mask": os.path.join(datadir, "setaria_small_plant_mask.png"),
         "setaria_small_plant_composed_contours": setaria_small_plant_composed_contours["arr_0"],
@@ -1211,7 +1215,7 @@ def test_plantcv_analyze_color_incorrect_image(test_data):
 
 def test_plantcv_analyze_color_bad_hist_type(test_data):
     img = cv2.imread(test_data["input_color_img"])
-    mask = cv2.imread(test_data["input_color_img"], -1)
+    mask = cv2.imread(test_data["input_binary_img"], -1)
     pcv.params.debug = "plot"
     with pytest.raises(RuntimeError):
         _ = pcv.analyze_color(rgb_img=img, mask=mask, hist_plot_type='bgr')
@@ -1440,8 +1444,7 @@ def test_plantcv_auto_crop(test_data, tmpdir, debug, mode, bkgd):
     pcv.params.debug = debug
     # Read in test data
     img = cv2.imread(test_data["input_multi_img"], mode)
-    contours = test_data["input_multi_rois"]
-    roi_contours = [contours[arr_n] for arr_n in contours]
+    roi_contours = test_data["input_multi_rois"]
     cropped = pcv.auto_crop(img=img, obj=roi_contours[1], color=bkgd)
     assert cropped.shape[0:2] == (21, 26)
 
@@ -1555,52 +1558,57 @@ def test_plantcv_cluster_contours_grayscale_input(test_data):
     roi_contours = test_data["input_multi_rois"]
     roi_str = test_data["input_multi_roi_str"]
     clusters_i, contours, hierarchy = pcv.cluster_contours(img=gray_img, roi_objects=roi_contours,
-                                                          roi_obj_hierarchy=roi_str)
+                                                           roi_obj_hierarchy=roi_str)
     assert len(clusters_i) == 1
 
 
-def test_plantcv_cluster_contours_splitimg():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.cluster_contours_splitimg
+# ##################################################################################################################
+@pytest.mark.parametrize("debug,prefix,ids,expected", [("print", "multi", True, 15), ("plot", None, False, 18)])
+def test_plantcv_cluster_contours_splitimg(test_data, tmpdir, debug, prefix, ids, expected):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_cluster_contours_splitimg")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
     # Read in test data
-    img1 = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MULTI), -1)
-    contours = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_CONTOUR), encoding="latin1")
-    clusters = np.load(os.path.join(TEST_DATA, TEST_INPUT_ClUSTER_CONTOUR), encoding="latin1")
-    hierachy = np.load(os.path.join(TEST_DATA, TEST_INPUT_MULTI_HIERARCHY), encoding="latin1")
-    cluster_names = os.path.join(TEST_DATA, TEST_INPUT_GENOTXT)
-    cluster_names_too_many = os.path.join(TEST_DATA, TEST_INPUT_GENOTXT_TOO_MANY)
-    roi_contours = [contours[arr_n] for arr_n in contours]
-    cluster_contours = [clusters[arr_n] for arr_n in clusters]
-    obj_hierarchy = hierachy['arr_0']
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _, _, _ = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=cluster_contours,
-                                           contours=roi_contours,
-                                           hierarchy=obj_hierarchy, outdir=cache_dir, file=None, filenames=None)
-    _, _, _ = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=[[0]], contours=[],
-                                           hierarchy=np.array([[[1, -1, -1, -1]]]))
-    _, _, _ = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=cluster_contours,
-                                           contours=roi_contours,
-                                           hierarchy=obj_hierarchy, outdir=cache_dir, file='multi', filenames=None)
+    img = cv2.imread(test_data["input_multi_img"])
+    roi_contours = test_data["input_multi_rois"]
+    roi_str = test_data["input_multi_roi_str"]
+    cluster_contours = test_data["clustered_contours"]
+    cluster_names = None
+    if ids is True:
+        cluster_names = test_data["cluster_names"]
+    output_path, imgs, masks = pcv.cluster_contour_splitimg(rgb_img=img, grouped_contour_indexes=cluster_contours,
+                                                            contours=roi_contours, hierarchy=roi_str,
+                                                            outdir=str(tmp_dir), file=prefix, filenames=cluster_names)
+    assert len(output_path) == expected
 
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
-    _, _, _ = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=cluster_contours,
-                                           contours=roi_contours,
-                                           hierarchy=obj_hierarchy, outdir=None, file=None, filenames=cluster_names)
-    _, _, _ = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=cluster_contours,
-                                           contours=roi_contours,
-                                           hierarchy=obj_hierarchy, outdir=None, file=None,
-                                           filenames=cluster_names_too_many)
+
+def test_plantcv_cluster_contours_splitimg_extra_names(test_data):
     # Test with debug = None
     pcv.params.debug = None
-    output_path, imgs, masks = pcv.cluster_contour_splitimg(rgb_img=img1, grouped_contour_indexes=cluster_contours,
-                                                            contours=roi_contours, hierarchy=obj_hierarchy, outdir=None,
-                                                            file=None,
-                                                            filenames=None)
-    assert len(output_path) != 0
+    # Read in test data
+    img = cv2.imread(test_data["input_multi_img"])
+    roi_contours = test_data["input_multi_rois"]
+    roi_str = test_data["input_multi_roi_str"]
+    cluster_contours = test_data["clustered_contours"]
+    cluster_names = test_data["cluster_names_too_many"]
+    output_path, imgs, masks = pcv.cluster_contour_splitimg(rgb_img=img, grouped_contour_indexes=cluster_contours,
+                                                            contours=roi_contours, hierarchy=roi_str, outdir=None,
+                                                            file=None, filenames=cluster_names)
+    assert len(output_path) == 18
+
+
+def test_plantcv_cluster_contours_splitimg_no_contours(test_data):
+    # Test with debug = None
+    pcv.params.debug = None
+    # Read in test data
+    img = cv2.imread(test_data["input_multi_img"])
+    output_path, imgs, masks = pcv.cluster_contour_splitimg(rgb_img=img, grouped_contour_indexes=[[0]], contours=[],
+                                                            hierarchy=np.array([[[1, -1, -1, -1]]]))
+    assert len(output_path) == 0
 
 
 def test_plantcv_color_palette():
