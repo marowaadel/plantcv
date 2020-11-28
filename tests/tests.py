@@ -258,7 +258,8 @@ def test_data():
         "thermal_img_data": thermal_img["arr_0"],
         "hyperspectral_data": os.path.join(datadir, "darkReference"),
         "hyperspectral_hdr": os.path.join(datadir, "darkReference.hdr"),
-        "hyperspectral_mask": os.path.join(datadir, "darkReference_mask.png")
+        "hyperspectral_mask": os.path.join(datadir, "darkReference_mask.png"),
+        "input_nir_img": os.path.join(datadir, "input_nir.png")
     }
 
 
@@ -1611,6 +1612,9 @@ def test_plantcv_cluster_contours_splitimg_no_contours(test_data):
     assert len(output_path) == 0
 
 
+# ##################################################################################################################
+# Tests for plantcv.plantcv.color_palette
+# ##################################################################################################################
 def test_plantcv_color_palette():
     # Return a color palette
     colors = pcv.color_palette(num=10, saved=False)
@@ -1631,34 +1635,27 @@ def test_plantcv_color_palette_saved():
     assert colors == [[0, 0, 0], [255, 255, 255]]
 
 
-def test_plantcv_crop():
+# ##################################################################################################################
+# Tests for plantcv.plantcv.crop
+# ##################################################################################################################
+@pytest.mark.parametrize("debug", ["print", "plot"])
+def test_plantcv_crop(test_data, tmpdir, debug):
     # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_crop")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
-    img, _, _ = pcv.readimage(os.path.join(TEST_DATA, TEST_INPUT_NIR_MASK), 'gray')
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.crop(img=img, x=10, y=10, h=50, w=50)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
+    tmp_dir = tmpdir.mkdir("sub")
+    # Set the output directory
+    pcv.params.debug_outdir = str(tmp_dir)
+    pcv.params.debug = debug
+    img = cv2.imread(test_data["input_nir_img"], -1)
     cropped = pcv.crop(img=img, x=10, y=10, h=50, w=50)
     assert np.shape(cropped) == (50, 50)
 
 
 def test_plantcv_crop_hyperspectral():
-    # Test cache directory
-    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_crop_hyperspectral")
-    os.mkdir(cache_dir)
-    pcv.params.debug_outdir = cache_dir
+    # Test with debug = None
+    pcv.params.debug = None
     # Read in test data
     img = np.ones((2056, 2454))
     img_stacked = cv2.merge((img, img, img, img))
-    # Test with debug = "print"
-    pcv.params.debug = "print"
-    _ = pcv.crop(img=img_stacked, x=10, y=10, h=50, w=50)
-    # Test with debug = "plot"
-    pcv.params.debug = "plot"
     cropped = pcv.crop(img=img_stacked, x=10, y=10, h=50, w=50)
     assert np.shape(cropped) == (50, 50, 4)
 
