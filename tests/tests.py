@@ -580,7 +580,7 @@ def test_plantcv_parallel_workflowconfig_subdaily_timestampformat():
         }
     }
 
-    
+
 def test_plantcv_parallel_check_date_range_wrongdateformat():
     start_date = 10
     end_date = 10
@@ -6518,6 +6518,22 @@ def test_plantcv_visualize_obj_size_ecdf(title):
     mask = cv2.imread(os.path.join(TEST_DATA, TEST_INPUT_MASK), -1)
     fig_ecdf = plantcv.plantcv.visualize.obj_size_ecdf(mask=mask, title=title)
     assert isinstance(fig_ecdf, ggplot)
+
+# ##############################
+# Tests for the io subpackage
+# ##############################
+
+def test_plantcv_io_random_subset():
+    full_list = ['a', 'b', 'c', 'd', 'e']
+    n_samples = 3
+    samples_list = pcv.io.random_subset(dataset=full_list, num=n_samples, seed=None)
+    assert set(samples_list).issubset(set(full_list))
+
+def test_plantcv_io_random_subset_greater_than_len():
+    full_list = ['a', 'b', 'c', 'd', 'e']
+    n_samples = len(full_list) + 1
+    with pytest.raises(RuntimeError):
+        _ = pcv.io.random_subset(dataset=full_list, num=n_samples, seed=None)
 
 
 # ##############################
