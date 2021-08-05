@@ -25,6 +25,12 @@ def metadata_parser(config):
     end_date = config.end_date
     if end_date is None:
         end_date = datetime.datetime.now().strftime(config.timestampformat)
+        now = datetime.datetime.now()
+        # now() maybe be before time of images if timestampformat is subdaily 
+        # if timestampformat is only hours,min,sec then the strptime will use year 1900
+        if now > datetime.datetime.strptime(end_date, config.timestampformat):
+            nextyear = (now+datetime.timedelta(days=366)).year
+            end_date = datetime.datetime(nextyear,12,31,23,59,59).strftime(config.timestampformat)
 
     start_date_unixtime = convert_datetime_to_unixtime(timestamp_str=start_date, date_format=config.timestampformat)
     end_date_unixtime = convert_datetime_to_unixtime(timestamp_str=end_date, date_format=config.timestampformat)
@@ -94,8 +100,9 @@ def metadata_parser(config):
                                 # If the metadata type has a user-provided restriction
                                 if term in config.metadata_filters:
                                     # If the input value does not match the image value, fail the image
-                                    if meta_value != config.metadata_filters[term]:
-                                        img_pass = 0
+                                    img_pass = _metdata_filter(img_metadata=meta_value,
+                                                               filters=config.metadata_filters[term],
+                                                               img_pass=img_pass)
                                 img_meta[term] = meta_value
                             # If the same metadata is found in the CSV file, store the value
                             elif term in colnames:
@@ -103,8 +110,9 @@ def metadata_parser(config):
                                 # If the metadata type has a user-provided restriction
                                 if term in config.metadata_filters:
                                     # If the input value does not match the image value, fail the image
-                                    if meta_value != config.metadata_filters[term]:
-                                        img_pass = 0
+                                    img_pass = _metdata_filter(img_metadata=meta_value,
+                                                               filters=config.metadata_filters[term],
+                                                               img_pass=img_pass)
                                 img_meta[term] = meta_value
                             # Or use the default value
                             else:
@@ -193,9 +201,9 @@ def metadata_parser(config):
                             meta_value = metadata[metadata_index[term]]
                             # If the metadata type has a user-provided restriction
                             if term in config.metadata_filters:
-                                # If the input value does not match the image value, fail the image
-                                if meta_value != config.metadata_filters[term]:
-                                    img_pass = 0
+                                img_pass = _metdata_filter(img_metadata=meta_value,
+                                                           filters=config.metadata_filters[term],
+                                                           img_pass=img_pass)
                             img_meta[term] = meta_value
                         # Or use the default value
                         else:
@@ -296,4 +304,32 @@ def _parse_filename(filename, delimiter, regex):
         else:
             metadata = []
     return metadata
+###########################################
+
+
+# Metadata filter
+###########################################
+def _metdata_filter(img_metadata, filters, img_pass):
+    """Check if an image metadata value matches a filter value.
+
+    Args:
+        img_metadata: The metadata value for the given image
+        filters:      The metadata filter values
+        img_pass:     The current pass/fail state
+
+    :param img_metadata: str
+    :param filters: str or list
+    :param img_pass: int
+    :return img_pass: int
+    """
+    if isinstance(filters, list):
+        # list of multiple filters
+        if img_metadata not in filters:
+            img_pass = 0
+    else:
+        # single filter as string
+        if img_metadata != filters:
+            img_pass = 0
+
+    return img_pass
 ###########################################
