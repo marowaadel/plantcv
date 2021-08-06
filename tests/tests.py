@@ -6540,11 +6540,11 @@ def test_plantcv_io_read_dataset_non_existent_path():
         _ = pcv.io.read_dataset(source_path='./non_existent_dir', pattern='')
 
 @pytest.mark.parametrize("test_pattern,expected", [['', '5'], [5, 1]])
-def test_plantcv_io_read_dataset():
+def test_plantcv_io_read_dataset(test_pattern,expected):
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_io_read_dataset")
     os.mkdir(cache_dir)
     rng = np.random.default_rng()
-    n_images = 5
+    n_images = 5 # must be the same as 'expected' when pattern is ''
     img_size = (10,10,3)
     for i in range(n_images):
         img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
