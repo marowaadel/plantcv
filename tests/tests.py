@@ -6531,6 +6531,17 @@ def test_plantcv_visualize_pixel_scatter_vis(ch):
     pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel=ch)
     assert 1
 
+def test_plantcv_visualize_pixel_scatter_vis_wrong_ch():
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_visualize_pixel_scatter_vis")
+    os.mkdir(cache_dir)
+    rng = np.random.default_rng()
+    img_size = (10,10,3)
+    img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
+    path_to_img = os.path.join(cache_dir, 'tmp_img.png')
+    cv2.imwrite(path_to_img, img)
+    with pytest.raises(RuntimeError):
+        pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel='wrong_ch')
+
 # ##############################
 # Tests for the io subpackage
 # ##############################
