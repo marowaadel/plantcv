@@ -6536,7 +6536,7 @@ def test_plantcv_io_random_subset_greater_than_len():
         _ = pcv.io.random_subset(dataset=full_list, num=n_samples, seed=None)
 
 def test_plantcv_io_read_dataset_non_existent_path():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(IOError):
         _ = pcv.io.read_dataset(source_path='./non_existent_dir', pattern='')
 
 @pytest.mark.parametrize("test_pattern,expected", [['', 5], ['5', 1]])
@@ -6549,7 +6549,7 @@ def test_plantcv_io_read_dataset(test_pattern,expected):
     for i in range(n_images):
         img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
         cv2.imwrite(os.path.join(cache_dir, f"tmp_img_{i}.png"), img)
-    img_paths = pcv.io.read_dataset(source_path=cache_dir, pattern='')
+    img_paths = pcv.io.read_dataset(source_path=cache_dir, pattern=test_pattern)
     assert len(img_paths ) == expected
 
 
