@@ -6519,6 +6519,18 @@ def test_plantcv_visualize_obj_size_ecdf(title):
     fig_ecdf = plantcv.plantcv.visualize.obj_size_ecdf(mask=mask, title=title)
     assert isinstance(fig_ecdf, ggplot)
 
+@pytest.mark.parametrize("ch", ['R', 'G', 'B', 'l', 'a', 'b', 'h', 's', 'v', 'gray'])
+def test_plantcv_visualize_pixel_scatter_vis(ch):
+    cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_visualize_pixel_scatter_vis")
+    os.mkdir(cache_dir)
+    rng = np.random.default_rng()
+    img_size = (10,10,3)
+    img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
+    path_to_img = os.path.join(cache_dir, 'tmp_img.png')
+    cv2.imwrite(path_to_img, img)
+    pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel=ch)
+    assert 1
+
 # ##############################
 # Tests for the io subpackage
 # ##############################
