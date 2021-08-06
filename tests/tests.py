@@ -6539,7 +6539,7 @@ def test_plantcv_io_read_dataset_non_existent_path():
     with pytest.raises(IOError):
         _ = pcv.io.read_dataset(source_path='./non_existent_dir', pattern='')
 
-@pytest.mark.parametrize("test_pattern,expected", [['', 5], ['5', 1]])
+@pytest.mark.parametrize("test_pattern,expected", [['', 5], ['0', 1]])
 def test_plantcv_io_read_dataset(test_pattern,expected):
     cache_dir = os.path.join(TEST_TMPDIR, "test_plantcv_io_read_dataset")
     os.mkdir(cache_dir)
