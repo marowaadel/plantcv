@@ -6543,7 +6543,7 @@ def test_plantcv_io_read_dataset():
     img_size = (10,10,3)
     for i in range(n_images):
         img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
-        cv2.imwrite(filename=os.path.join(cache_dir, f"tmp_img_{i}.png"), image=img)
+        cv2.imwrite(os.path.join(cache_dir, f"tmp_img_{i}.png"), img)
     img_paths = pcv.io.read_dataset(source_path=cache_dir, pattern='')
     assert len(img_paths)==n_images
 
