@@ -6525,9 +6525,11 @@ def test_plantcv_visualize_pixel_scatter_vis(ch):
     os.mkdir(cache_dir)
     rng = np.random.default_rng()
     img_size = (10,10,3)
+    # create a random image and write it to the temp directory
     img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
     path_to_img = os.path.join(cache_dir, 'tmp_img.png')
     cv2.imwrite(path_to_img, img)
+    # test the function with a list of one path to the random image
     pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel=ch)
     assert 1
 
@@ -6536,9 +6538,11 @@ def test_plantcv_visualize_pixel_scatter_vis_wrong_ch():
     os.mkdir(cache_dir)
     rng = np.random.default_rng()
     img_size = (10,10,3)
+    # create a random image and write it to the temp directory
     img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
     path_to_img = os.path.join(cache_dir, 'tmp_img.png')
     cv2.imwrite(path_to_img, img)
+    # test the function with channel parameter that is not an option
     with pytest.raises(RuntimeError):
         pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel='wrong_ch')
 
@@ -6554,6 +6558,7 @@ def test_plantcv_io_random_subset():
 
 def test_plantcv_io_random_subset_greater_than_len():
     full_list = ['a', 'b', 'c', 'd', 'e']
+    # test error when asking for one more sample than the existent number in the list
     n_samples = len(full_list) + 1
     with pytest.raises(RuntimeError):
         _ = pcv.io.random_subset(dataset=full_list, num=n_samples, seed=None)
@@ -6569,9 +6574,11 @@ def test_plantcv_io_read_dataset(test_pattern,expected):
     rng = np.random.default_rng()
     n_images = 5 # must be the same as 'expected' when pattern is ''
     img_size = (10,10,3)
+    # create several random images and write them to the temporary directory
     for i in range(n_images):
         img = rng.integers(low=0, high=255, size=img_size, dtype=np.uint8, endpoint=True)
         cv2.imwrite(os.path.join(cache_dir, f"tmp_img_{i}.png"), img)
+    # run the function to read the temporary directory
     img_paths = pcv.io.read_dataset(source_path=cache_dir, pattern=test_pattern)
     assert len(img_paths ) == expected
 
