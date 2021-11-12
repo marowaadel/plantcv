@@ -6530,7 +6530,7 @@ def test_plantcv_visualize_pixel_scatter_vis(ch):
     path_to_img = os.path.join(cache_dir, 'tmp_img.png')
     cv2.imwrite(path_to_img, img)
     # test the function with a list of one path to the random image
-    pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel=ch)
+    _, _ = pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], x_channel=ch, y_channel='index')
     assert 1
 
 def test_plantcv_visualize_pixel_scatter_vis_wrong_ch():
@@ -6544,7 +6544,7 @@ def test_plantcv_visualize_pixel_scatter_vis_wrong_ch():
     cv2.imwrite(path_to_img, img)
     # test the function with channel parameter that is not an option
     with pytest.raises(RuntimeError):
-        pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], channel='wrong_ch')
+        _, _ = pcv.visualize.pixel_scatter_vis(paths_to_imgs=[path_to_img], x_channel='wrong_ch', y_channel='index')
 
 # ##############################
 # Tests for the utils subpackage
